@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sidebar</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-top">
+        <button class="icon-btn" id="collapseBtn" title="Yig'ish">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        </button>
+        <div class="nav-arrows">
+          <button class="icon-btn" title="Orqaga"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+          <button class="icon-btn" title="Oldinga" disabled><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+
+      <label class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="search" placeholder="Qidirish...">
+        <kbd>Ctrl K</kbd>
+      </label>
+
+      <nav class="menu">
+        <a href="#" class="menu-item primary">
+          <span class="plus"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+          Yangi
+        </a>
+        <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"/><path d="M4 12l8 4 8-4M4 17l8 4 8-4"/></svg>Artifacts</a>
+        <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Routines</a>
+        <a href="#" class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Customize</a>
+      </nav>
+
+      <div class="groups" id="groups">
+        <section class="group" style="--accent:#6366f1">
+          <header class="group-head">
+            <button class="group-toggle"><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="dot"></span>bogcha</button>
+            <button class="icon-btn sm" title="Qo'shish"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          </header>
+          <ul>
+            <li><a href="#">Nuxt.js veb-ilova maktablar uchun</a></li>
+          </ul>
+        </section>
+
+        <section class="group" style="--accent:#10b981">
+          <header class="group-head">
+            <button class="group-toggle"><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="dot"></span>shoxistap</button>
+            <button class="icon-btn sm" title="Qo'shish"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          </header>
+          <ul>
+            <li><a href="#" class="active">Sidebar GA dizayni</a></li>
+            <li><a href="#">Instagram loyihasi va bot boshqaruvi</a></li>
+          </ul>
+        </section>
+
+        <section class="group collapsed" style="--accent:#f59e0b">
+          <header class="group-head">
+            <button class="group-toggle"><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="dot"></span>Sinflar</button>
+            <button class="icon-btn sm" title="Qo'shish"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          </header>
+          <ul>
+            <li><a href="#">5-A sinf</a></li>
+          </ul>
+        </section>
+
+        <section class="group" style="--accent:#94a3b8">
+          <header class="group-head">
+            <button class="group-toggle"><svg class="chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="dot"></span>Boshqa</button>
+          </header>
+          <ul>
+            <li><a href="#">Telegram referral bot Vercel deployment</a></li>
+            <li><a href="#">Bomadi root deployment with Python</a></li>
+            <li><a href="#" class="unread">Baraka web mobile viewport</a></li>
+            <li><a href="#">Telegram ads bot database</a></li>
+          </ul>
+        </section>
+        <p class="empty" id="empty" hidden>Hech narsa topilmadi</p>
+      </div>
+
+      <footer class="sb-foot">
+        <div class="avatar">R</div>
+        <div class="who"><b>Rakhista</b><small>Pro reja</small></div>
+        <button class="icon-btn" id="themeBtn" title="Mavzu">
+          <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </footer>
+    </aside>
+
+    <main class="content">
+      <button class="icon-btn mobile-open" id="openBtn" title="Menyu">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1>Sidebar GA dizayni</h1>
+      <p>Asosiy kontent shu yerda.</p>
+    </main>
+    <div class="backdrop" id="backdrop"></div>
+  </div>
+  <script src="sidebar.js"></script>
+</body>
+</html>
