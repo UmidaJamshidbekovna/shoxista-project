@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* Baraka dizayn tizimi (README §4) */
+@theme {
+  --font-sans: 'Manrope', system-ui, sans-serif;
+
+  --color-brand: #05472a;          /* asosiy yashil (ilova) */
+  --color-brand-hover: #0a6b41;
+  --color-onb: #0e8a5f;            /* onboarding yashili */
+  --color-onb-hover: #0b7a53;
+  --color-onb-bg: #eef6ef;
+
+  --color-app: #f4f6f9;            /* ilova foni */
+  --color-glow: #c9e3d3;           /* tepadagi nur */
+  --color-outer: #d9e1eb;          /* telefon atrofi */
+  --color-card: #ffffff;
+  --color-soft: #e6efe9;           /* ikonka fonlari */
+  --color-soft-2: #e7f7ec;         /* AI javoblari */
+  --color-ink: #121212;
+  --color-ink-2: #12211a;
+  --color-muted: #8b9099;
+  --color-muted-2: #4a5a52;
+  --color-field: #f1f3f6;          /* input, kichik tugmalar */
+  --color-line: #e9ecf1;
+
+  --color-danger: #d92d20;
+  --color-danger-soft: #fdecea;
+  --color-warn: #b54708;
+  --color-warn-soft: #fef3e2;
+  --color-info: #1d5bd8;
+  --color-info-soft: #e8effc;
+
+  --shadow-card: 0 4px 14px rgba(5, 71, 42, 0.07);
+  --shadow-float: 0 10px 28px rgba(5, 71, 42, 0.22);
+
+  --animate-slide-up: slide-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-in: fade-in 0.2s ease-out;
+  @keyframes slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+@layer base {
+  html, body {
+    background: var(--color-outer);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  h1, h2, h3 { letter-spacing: -0.02em; }
+  button { cursor: pointer; font-family: inherit; }
+  button:disabled { cursor: default; }
+  a { text-decoration: none; }
+  input, textarea, select { font-family: inherit; }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+/* Ilova foni: #f4f6f9 + tepada yashil nur */
+@utility bg-app-glow {
+  background:
+    radial-gradient(120% 220px at 50% 0%, var(--color-glow) 0%, transparent 70%),
+    var(--color-app);
+}
+
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
+}
+@utility pt-safe {
+  padding-top: calc(var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, 0px));
+}
+
+/* Oq karta: radius 20, yumshoq yashil soya */
+@utility card {
+  background: var(--color-card);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+}
