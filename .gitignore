@@ -5,3 +5,9 @@ node_modules
 dist
 .env
 .claude
+
+# Faqat baraka/ repoda saqlanadi
+tg-app/
+/index.html
+/sidebar.css
+/sidebar.js
