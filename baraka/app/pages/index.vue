@@ -1,161 +1,180 @@
 <script setup lang="ts">
 import type { IconName } from '~/components/AppIcon.vue'
+import type { OrderStatus } from '~/data/types'
 
 definePageMeta({ tab: true })
 
 const {
-  business, receivable, payable, activeOnlineOrders, supplierOrders, lowStock,
-  unreadNotifications, unreadChats, customers, organizations, stockState,
+  business, branchById, currentBranchId, receivable, payable, transactions,
+  unreadNotifications, unreadChats,
 } = useStore()
+const { filters, kind } = useHistFilters()
 const { selection, haptic } = useTelegram()
+const { show } = useToast()
 const aiOpen = ref(false)
 
 const owner = computed(() => business.value.owner.split(' ')[0])
-const greeting = computed(() => {
-  const h = new Date().getHours()
-  return h < 5 ? 'Xayrli tun' : h < 11 ? 'Xayrli tong' : h < 18 ? 'Xayrli kun' : 'Xayrli kech'
-})
+const branch = computed(() => branchById(currentBranchId.value)?.name ?? '')
 
-const debtorCount = computed(() => customers.value.filter(c => c.debt > 0).length + organizations.value.filter(o => o.balance < 0).length)
-const creditorCount = computed(() => organizations.value.filter(o => o.balance > 0).length)
+/** Aktiv buyurtmalar: hali yetkazilmagan (§5, §6) */
+const ACTIVE: OrderStatus[] = ['pending', 'processing', 'shipping']
+const customerOrders = computed(() => transactions.value.filter(t => t.kind === 'sale' && ACTIVE.includes(t.status)))
+const supplierActive = computed(() => transactions.value.filter(t => t.kind === 'purchase' && ACTIVE.includes(t.status)))
 
-const services: { label: string, icon: IconName, to: string, color: string }[] = [
-  { label: 'Sotish', icon: 'cart', to: '/sotish', color: '#05472a' },
-  { label: 'Kirim', icon: 'download', to: '/ombor/kirim', color: '#1d5bd8' },
-  { label: 'Mijozlar', icon: 'users', to: '/mijozlar', color: '#7c3aed' },
-  { label: 'Ta\'minotchilar', icon: 'truck', to: '/taminotchilar', color: '#b54708' },
-  { label: 'Chat', icon: 'chat', to: '/chat', color: '#0891b2' },
-  { label: 'Hisobot', icon: 'chart', to: '/ombor/hisobot', color: '#0e8a5f' },
-  { label: 'Kategoriyalar', icon: 'grid', to: '/ombor/kategoriyalar', color: '#db2777' },
-  { label: 'Xodimlar', icon: 'user', to: '/profil/xodimlar', color: '#4a5a52' },
+/** Qarz kartasi → Tarix, qarzdorlik filtri bilan (§4) */
+function openDebts(k: 'sale' | 'purchase') {
+  kind.value = k
+  filters.value = { ...emptyHistFilters(), payStatuses: ['unpaid', 'partial'] }
+  haptic('light')
+  navigateTo('/tarix')
+}
+
+const services: { label: string, icon: IconName, to?: string }[] = [
+  { label: 'Mijozlar', icon: 'users', to: '/mijozlar' },
+  { label: 'Tashkilotlar', icon: 'building', to: '/mijozlar?tab=org' },
+  { label: 'Kategoriya', icon: 'grid', to: '/ombor/kategoriyalar' },
+  { label: 'Hisobot', icon: 'chart', to: '/ombor/hisobot' },
+  { label: 'Barchasi', icon: 'more' },
 ]
 
-const recentSupplier = computed(() => supplierOrders.value.slice(0, 3))
-const outCount = computed(() => lowStock.value.filter(p => stockState(p) === 'out').length)
+function openService(s: { to?: string }) {
+  if (s.to) return selection()
+  show('Barcha xizmatlar ro\'yxati tayyorlanmoqda', 'info')
+}
 
-function openAi() {
-  haptic('medium')
-  aiOpen.value = true
+// --- suzuvchi AI robot: vertikal sudrash, joyi localStorage'da (§8) ---
+const ROBOT_KEY = 'sm_robotY'
+const robot = ref<HTMLElement>()
+const robotY = ref(420)
+const dragging = ref(false)
+let startY = 0
+let startTop = 0
+let moved = 0
+
+function clampY(v: number) {
+  const h = robot.value?.parentElement?.clientHeight ?? 844
+  return Math.max(60, Math.min(Math.min(600, h - 170), v))
+}
+
+onMounted(() => {
+  const saved = Number(localStorage.getItem(ROBOT_KEY))
+  robotY.value = clampY(saved || 520)
+})
+
+function onDown(e: PointerEvent) {
+  dragging.value = true
+  startY = e.clientY
+  startTop = robotY.value
+  moved = 0
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+
+function onMove(e: PointerEvent) {
+  if (!dragging.value) return
+  const dy = e.clientY - startY
+  moved = Math.max(moved, Math.abs(dy))
+  robotY.value = clampY(startTop + dy)
+}
+
+function onUp() {
+  if (!dragging.value) return
+  dragging.value = false
+  try { localStorage.setItem(ROBOT_KEY, String(robotY.value)) }
+  catch {}
+  // 5px dan kam siljigan bo'lsa — bosish deb hisoblanadi
+  if (moved < 5) {
+    haptic('medium')
+    aiOpen.value = true
+  }
 }
 </script>
 
 <template>
-  <!-- sarlavha -->
-  <header class="flex shrink-0 items-center gap-3 px-5 pt-4 pb-3">
-    <NuxtLink to="/profil" class="relative shrink-0" aria-label="Profil">
-      <Avatar :name="business.owner" :size="46" />
-      <span class="absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full border-2 border-app bg-[#22c483]" />
-    </NuxtLink>
-    <div class="min-w-0 grow">
-      <p class="truncate text-[13px] font-semibold text-muted">{{ greeting }},</p>
-      <h1 class="truncate text-[22px] leading-tight font-extrabold tracking-[-0.02em] text-ink">{{ owner }} 👋</h1>
-    </div>
-    <RoundButton icon="chat" label="Chat" to="/chat" :badge="unreadChats || undefined" />
-    <RoundButton icon="bell" label="Bildirishnomalar" to="/bildirishnomalar" :badge="unreadNotifications || undefined" />
-  </header>
+  <div class="no-scrollbar grid min-h-0 grow auto-rows-min content-start grid-cols-[minmax(0,1fr)] gap-[22px] overflow-y-auto px-5 pt-4 pb-[124px]">
+    <!-- 1. Sarlavha -->
+    <header class="flex items-center gap-3">
+      <div class="min-w-0 grow">
+        <h1 class="truncate text-[25px] leading-tight font-extrabold tracking-[-0.02em] text-ink">Salom, {{ owner }}!</h1>
+        <p class="mt-[3px] truncate text-[13px] font-semibold text-muted">{{ business.name }} · {{ branch }}</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <RoundButton icon="bell" label="Bildirishnomalar" to="/bildirishnomalar" :dot="unreadNotifications > 0" />
+        <RoundButton icon="chat" label="Chat" to="/chat" :badge="unreadChats || undefined" badge-tone="brand" />
+      </div>
+    </header>
 
-  <div class="no-scrollbar min-h-0 grow overflow-y-auto px-5 pb-28">
-    <NuxtLink to="/profil/filiallar" class="mb-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-card/80 px-3 text-[12px] font-bold text-muted-2 shadow-card">
-      <AppIcon name="store" :size="14" class="text-brand" />
-      {{ business.name }} · Chilonzor filiali
-      <AppIcon name="chevron-down" :size="14" />
-    </NuxtLink>
-
+    <!-- 2. Savdo kartasi -->
     <HomeRevenueCard />
 
-    <!-- qarzlar -->
-    <div class="mt-3.5 grid grid-cols-2 gap-3">
-      <NuxtLink to="/mijozlar" class="card flex flex-col gap-2.5 p-4 active:scale-[0.98] transition-transform" @click="selection()">
-        <div class="flex items-center justify-between">
-          <span class="flex size-9 items-center justify-center rounded-full bg-soft text-brand"><AppIcon name="arrow-down" :size="18" :stroke="2.4" /></span>
-          <AppIcon name="chevron-right" :size="16" class="text-muted" />
-        </div>
-        <div>
-          <p class="text-[12px] font-bold text-muted">Mijozlar qarzi</p>
-          <p class="mt-0.5 text-[17px] leading-tight font-extrabold tracking-[-0.01em] text-ink">{{ formatSom(receivable) }}</p>
-          <p class="text-[11px] font-semibold text-muted">so'm · {{ debtorCount }} ta qarzdor</p>
-        </div>
-      </NuxtLink>
-      <NuxtLink to="/mijozlar?tab=org" class="card flex flex-col gap-2.5 p-4 active:scale-[0.98] transition-transform" @click="selection()">
-        <div class="flex items-center justify-between">
-          <span class="flex size-9 items-center justify-center rounded-full bg-warn-soft text-warn"><AppIcon name="arrow-up" :size="18" :stroke="2.4" /></span>
-          <AppIcon name="chevron-right" :size="16" class="text-muted" />
-        </div>
-        <div>
-          <p class="text-[12px] font-bold text-muted">Bizning qarzimiz</p>
-          <p class="mt-0.5 text-[17px] leading-tight font-extrabold tracking-[-0.01em] text-ink">{{ formatSom(payable) }}</p>
-          <p class="text-[11px] font-semibold text-muted">so'm · {{ creditorCount }} ta tashkilot</p>
-        </div>
-      </NuxtLink>
+    <!-- 3. Qarz kartalari -->
+    <div class="grid grid-cols-2 gap-2.5">
+      <button
+        type="button"
+        class="flex items-center gap-2.5 rounded-[18px] bg-card py-2.5 pr-2 pl-2.5 text-left shadow-card transition-transform active:scale-[0.98]"
+        @click="openDebts('sale')"
+      >
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-soft text-brand"><AppIcon name="arrow-down" :size="18" :stroke="2.4" /></span>
+        <span class="min-w-0">
+          <span class="block truncate text-[14px] font-bold text-muted">Mijoz qarzi</span>
+          <span class="block truncate text-[16px] font-extrabold text-brand">{{ formatSom(receivable) }}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        class="flex items-center gap-2.5 rounded-[18px] bg-card py-2.5 pr-2 pl-2.5 text-left shadow-card transition-transform active:scale-[0.98]"
+        @click="openDebts('purchase')"
+      >
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e3f4f1] text-[#0f766e]"><AppIcon name="arrow-up" :size="18" :stroke="2.4" /></span>
+        <span class="min-w-0">
+          <span class="block truncate text-[14px] font-bold text-muted">Bizning qarz</span>
+          <span class="block truncate text-[16px] font-extrabold text-[#0f766e]">{{ formatSom(payable) }}</span>
+        </span>
+      </button>
     </div>
 
-    <!-- xizmatlar -->
-    <section class="mt-5">
-      <SectionHead title="Xizmatlar" />
-      <div class="card mt-3 grid grid-cols-4 gap-y-4 px-2 py-4">
-        <NuxtLink
-          v-for="s in services" :key="s.to" :to="s.to"
-          class="group flex min-w-0 flex-col items-center gap-1.5 px-1"
-          @click="selection()"
+    <!-- 4. Mijoz buyurtmalari -->
+    <HomeOrderRail
+      title="Mijoz buyurtmalari" :items="customerOrders" all-to="/tarix"
+      empty-icon="cart" empty-title="Hozircha aktiv buyurtma yo'q"
+      empty-text="Yangi buyurtma kelganda shu yerda ko'rinadi"
+    />
+
+    <!-- 5. Ta'minotchilarga buyurtmalar -->
+    <HomeOrderRail
+      title="Ta'minotchilarga buyurtmalar" :items="supplierActive" all-to="/tarix" new-card
+      empty-icon="truck" empty-title="Ta'minotchilarga aktiv buyurtma yo'q"
+      empty-text="Coca-Cola, non yoki sut ta'minotchisiga ilovadan buyurtma bering"
+      @new="navigateTo('/taminotchilar')"
+    />
+
+    <!-- 6. Xizmatlar -->
+    <section class="flex flex-col gap-3">
+      <h2 class="text-base font-extrabold text-ink">Xizmatlar</h2>
+      <div class="no-scrollbar -mx-5 flex gap-3.5 overflow-x-auto px-5">
+        <component
+          :is="s.to ? 'NuxtLink' : 'button'"
+          v-for="s in services" :key="s.label" :to="s.to" :type="s.to ? undefined : 'button'"
+          class="group flex w-[68px] shrink-0 flex-col items-center gap-1.5"
+          @click="openService(s)"
         >
-          <span
-            class="flex size-[50px] items-center justify-center rounded-[17px] transition-transform group-active:scale-90"
-            :style="{ background: `${s.color}14`, color: s.color }"
-          >
-            <AppIcon :name="s.icon" :size="23" />
+          <span class="flex size-[60px] items-center justify-center rounded-full bg-card text-brand shadow-card transition-transform group-active:scale-[0.94]">
+            <AppIcon :name="s.icon" :size="22" />
           </span>
-          <span class="w-full truncate text-center text-[10.5px] font-bold tracking-[-0.01em] text-muted-2">{{ s.label }}</span>
-        </NuxtLink>
-      </div>
-    </section>
-
-    <!-- kam qolgan mahsulotlar -->
-    <NuxtLink
-      v-if="lowStock.length" to="/ombor"
-      class="mt-3.5 flex items-center gap-3 rounded-[20px] border border-[#f9dcb4] bg-warn-soft p-4 transition-transform active:scale-[0.99]"
-    >
-      <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-warn shadow-card"><AppIcon name="alert" :size="21" /></span>
-      <span class="min-w-0 grow">
-        <span class="block truncate text-[14px] font-extrabold text-ink">{{ lowStock.length }} ta mahsulot kam qoldi</span>
-        <span class="block truncate text-xs font-semibold text-warn">
-          {{ outCount ? `${outCount} tasi tugagan · ` : '' }}{{ lowStock.map(p => p.name).join(', ') }}
-        </span>
-      </span>
-      <span class="flex shrink-0 -space-x-2">
-        <span v-for="p in lowStock.slice(0, 3)" :key="p.id" class="flex size-7 items-center justify-center rounded-full border-2 border-warn-soft bg-white text-[13px]">{{ p.emoji }}</span>
-      </span>
-    </NuxtLink>
-
-    <!-- faol online buyurtmalar -->
-    <section class="mt-5">
-      <SectionHead title="Faol online buyurtmalar" to="/tarix" />
-      <div class="card mt-3 px-4 py-1">
-        <template v-if="activeOnlineOrders.length">
-          <HomeTxRow v-for="t in activeOnlineOrders" :key="t.id" :tx="t" />
-        </template>
-        <EmptyState v-else icon="cart" title="Faol buyurtma yo'q" text="Yangi online buyurtmalar shu yerda ko'rinadi" />
-      </div>
-    </section>
-
-    <!-- ta'minotchilarga buyurtmalar -->
-    <section class="mt-5">
-      <SectionHead title="Ta'minotchilarga buyurtmalar" to="/taminotchilar" action="Ta'minotchilar" />
-      <div class="card mt-3 px-4 py-1">
-        <template v-if="recentSupplier.length">
-          <HomeTxRow v-for="t in recentSupplier" :key="t.id" :tx="t" supplier />
-        </template>
-        <EmptyState v-else icon="truck" title="Buyurtmalar yo'q" text="Ta'minotchiga buyurtma bering — kirim avtomatik qayd etiladi" />
+          <span class="w-full truncate text-center text-[11.5px] font-semibold text-muted-2">{{ s.label }}</span>
+        </component>
       </div>
     </section>
   </div>
 
-  <!-- suzuvchi AI robot -->
+  <!-- suzuvchi AI robot (vertikal sudraladi) -->
   <button
-    type="button" aria-label="AI yordamchi"
-    class="ai-fab absolute right-5 bottom-5 z-30 flex size-[62px] items-center justify-center rounded-full bg-[linear-gradient(145deg,#14a36f,#05472a)] text-white shadow-[0_12px_28px_rgba(5,71,42,0.4)] transition-transform active:scale-90"
-    @click="openAi"
+    ref="robot" type="button" aria-label="AI yordamchi"
+    class="absolute right-5 z-30 flex size-[62px] touch-none items-center justify-center rounded-full bg-[linear-gradient(145deg,#14a36f,#05472a)] text-white shadow-[0_12px_28px_rgba(5,71,42,0.4)]"
+    :class="dragging ? 'scale-105 cursor-grabbing' : 'ai-fab cursor-grab transition-transform active:scale-90'"
+    :style="{ top: `${robotY}px` }"
+    @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp"
   >
-    <span class="ai-ring absolute inset-0 rounded-full border-2 border-[#22c483]" />
+    <span v-if="!dragging" class="ai-ring absolute inset-0 rounded-full border-2 border-[#22c483]" />
     <AppIcon name="robot" :size="30" :stroke="1.8" />
     <span class="absolute -top-1 -right-1 flex h-5 items-center rounded-full border-2 border-white bg-[#22c483] px-1.5 text-[9px] font-extrabold">AI</span>
   </button>

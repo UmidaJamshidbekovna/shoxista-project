@@ -18,6 +18,12 @@ const today = new Date()
 const customFrom = ref(iso(new Date(today.getTime() - 6 * 86400000)))
 const customTo = ref(iso(today))
 
+// Bosh sahifadagi savdo kartasidan kelgan davr (?period=...&from&to)
+const q = useRoute().query
+if (typeof q.period === 'string' && PERIODS.some(p => p.value === q.period)) period.value = q.period as typeof period.value
+if (typeof q.from === 'string') customFrom.value = q.from
+if (typeof q.to === 'string') customTo.value = q.to
+
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
 const range = computed(() => {
   const end = new Date(startOfDay(new Date()).getTime() + 86400000)

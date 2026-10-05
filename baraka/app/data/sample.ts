@@ -179,7 +179,6 @@ export const supplierListings: SupplierListing[] = [
 
 /** Bosh sahifa grafigi uchun tushum (so'm) */
 export const revenue = {
-  day: { label: 'Bugun', total: 4120000, change: 8.4, points: [120, 340, 520, 610, 480, 720, 690, 640], labels: ['8', '10', '12', '14', '16', '18', '20', '22'] },
-  week: { label: 'Bu hafta', total: 27460000, change: 5.1, points: [3.6, 4.1, 3.4, 4.4, 4.9, 4.6, 2.5], labels: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'] },
-  month: { label: 'Sentabr', total: 112800000, change: -2.3, points: [24.1, 27.8, 31.4, 29.5], labels: ['1-hafta', '2-hafta', '3-hafta', '4-hafta'] },
+  day: { label: 'Bugun', total: 4850000, change: 12.4, points: [380, 620, 510, 880, 660, 1070, 730], labels: ['08', '10', '12', '14', '16', '18', '20'] },
+  week: { label: 'Bu hafta', total: 31200000, change: 8.1, points: [3.6, 4.1, 3.4, 5.5, 4.9, 5.3, 4.4], labels: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'] },
 }
