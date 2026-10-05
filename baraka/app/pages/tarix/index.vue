@@ -62,7 +62,7 @@ function resetAll() {
     </div>
   </div>
 
-  <div class="no-scrollbar min-h-0 grow overflow-y-auto px-5 pb-6">
+  <div class="no-scrollbar min-h-0 grow overflow-y-auto px-5 pb-28">
     <div class="mb-4 flex items-center justify-between rounded-[20px] bg-brand px-4 py-3.5 text-white shadow-float">
       <div>
         <p class="text-xs font-semibold text-white/70">{{ kind === 'sale' ? 'Jami sotuv' : 'Jami xarid' }}</p>

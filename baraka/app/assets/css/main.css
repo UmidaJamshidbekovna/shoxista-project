@@ -73,6 +73,16 @@
     var(--color-app);
 }
 
+/* Suzuvchi pastki navigatsiya (BottomNav): 22px + qurilma inset */
+@utility bottom-float {
+  bottom: calc(22px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+}
+
+/* Suzuvchi navbar USTIDA turadigan tugmalar (AI robot) */
+@utility above-float {
+  bottom: calc(96px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+}
+
 @utility pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
 }

@@ -188,7 +188,7 @@ function openPay() {
     </div>
 
     <!-- Savat paneli (pastki navigatsiya ustida) -->
-    <div class="shrink-0 px-3 pt-1 pb-3">
+    <div class="shrink-0 px-3 pt-1 pb-24">
       <div class="flex items-center gap-2 rounded-[24px] bg-brand p-2 pl-3 text-white shadow-float">
         <button type="button" class="flex min-w-0 grow items-center gap-3 text-left" aria-label="Savatni ochish" @click="sheets.cart = true">
           <span class="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-white/12">

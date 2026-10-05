@@ -75,7 +75,7 @@ const links = [
     <RoundButton icon="plus" label="Yangi mahsulot" variant="brand" @click="createOpen = true" />
   </PageHeader>
 
-  <div class="no-scrollbar flex min-h-0 grow flex-col gap-3.5 overflow-y-auto px-5 pb-6">
+  <div class="no-scrollbar flex min-h-0 grow flex-col gap-3.5 overflow-y-auto px-5 pb-28">
     <div class="relative overflow-hidden rounded-[24px] bg-brand p-5 text-white shadow-float">
       <div class="absolute -top-10 -right-8 size-36 rounded-full bg-white/8" />
       <p class="text-[13px] font-bold text-white/70">Ombor qiymati (tannarxda)</p>

@@ -38,7 +38,7 @@ function logout() {
 <template>
   <PageHeader title="Profil" />
 
-  <div class="no-scrollbar flex min-h-0 grow flex-col *:shrink-0 gap-3.5 overflow-y-auto px-5 pb-6">
+  <div class="no-scrollbar flex min-h-0 grow flex-col *:shrink-0 gap-3.5 overflow-y-auto px-5 pb-28">
     <!-- Foydalanuvchi -->
     <div class="card flex items-center gap-3 p-4">
       <Avatar :name="userName" :src="user?.photo_url" :size="56" />
