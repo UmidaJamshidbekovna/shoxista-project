@@ -17,7 +17,7 @@ export default defineNuxtPlugin(() => {
     if (!document.querySelector('#sheet-root [role=dialog]')) router.back()
   })
   router.afterEach((to) => {
-    if (to.meta.tab || to.meta.layout === 'onboarding') tg.BackButton.hide()
+    if (to.meta.tab || to.path === '/onboarding') tg.BackButton.hide()
     else tg.BackButton.show()
   })
 })

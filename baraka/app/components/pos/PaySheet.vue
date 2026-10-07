@@ -16,6 +16,7 @@ const rows = ref<{ method: PayMethod, value: string }[]>([])
 const pristine = ref(true)
 const debtOn = ref(false)
 const term = ref<DebtTerm>('1w')
+const termOptions = (Object.keys(debtTermLabel) as DebtTerm[]).map(k => ({ value: k, label: debtTermLabel[k] }))
 const busy = ref(false)
 
 watch(open, (v) => {
@@ -220,7 +221,7 @@ function finish() {
             <PillButton size="sm" @click="emit('need-customer')">Tanlash</PillButton>
           </div>
           <span class="text-[13px] font-bold text-muted-2">Qaytarish muddati</span>
-          <Segmented v-model="term" :options="(Object.keys(debtTermLabel) as DebtTerm[]).map(k => ({ value: k, label: debtTermLabel[k] }))" />
+          <Segmented v-model="term" :options="termOptions" />
           <p class="flex items-center gap-1.5 text-xs font-semibold text-muted-2">
             <AppIcon name="calendar" :size="14" /> Muddat: {{ formatDate(dueDate) }}
             <template v-if="customer && customer.debt > 0"> · Jami qarz {{ formatSom(customer.debt + remaining) }} so'm bo'ladi</template>
