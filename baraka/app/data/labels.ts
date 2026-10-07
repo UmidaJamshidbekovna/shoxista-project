@@ -31,7 +31,8 @@ export const methodIcon: Record<PayMethod, string> = {
 }
 
 export const channelLabel: Record<Channel, string> = { offline: 'Do\'kon', telegram: 'Telegram', instagram: 'Instagram', app: 'Ilova' }
-export const channelIcon: Record<Channel, string> = { offline: 'store', telegram: 'telegram', instagram: 'instagram', app: 'grid' }
+// Home Icons.md §3: Telegram → send, Ilova → mobile
+export const channelIcon: Record<Channel, string> = { offline: 'store', telegram: 'send', instagram: 'instagram', app: 'mobile' }
 
 export const roleLabel: Record<Role, string> = { owner: 'Egasi', manager: 'Menejer', cashier: 'Kassir', storekeeper: 'Omborchi', courier: 'Kuryer' }
 

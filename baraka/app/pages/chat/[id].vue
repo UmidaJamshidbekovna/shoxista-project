@@ -6,7 +6,9 @@ const route = useRoute()
 const router = useRouter()
 const NuxtLink = resolveComponent('NuxtLink')
 const { chats, txById, customerById, orgById } = useStore()
-const { suggestions, aiReply, aiPrompts } = useChatAi()
+const { suggestions } = useChatAi()
+const { askAiQ } = useAiRobot()
+const aiPrompts = AI_QUICK
 const { haptic, selection } = useTelegram()
 const { show } = useToast()
 
@@ -67,18 +69,20 @@ function send(body = text.value) {
   const msg = body.trim()
   if (!t || !msg || typing.value && t.kind === 'ai') return
   haptic('light')
-  push({ from: 'me', text: msg })
   text.value = ''
   showHints.value = false
+  // AI: mini oyna bilan bitta tarix, javob 1100 ms da (AI Robot.md §4.2, §6)
   if (t.kind === 'ai') {
     typing.value = true
-    scrollDown()
-    setTimeout(() => {
+    askAiQ(msg, () => {
       typing.value = false
-      push({ from: 'ai', text: aiReply(msg) })
-    }, 900 + Math.random() * 700)
+      scrollDown()
+    })
+    scrollDown()
+    return
   }
-  else if (t.kind === 'support') {
+  push({ from: 'me', text: msg })
+  if (t.kind === 'support') {
     typing.value = true
     setTimeout(() => {
       typing.value = false

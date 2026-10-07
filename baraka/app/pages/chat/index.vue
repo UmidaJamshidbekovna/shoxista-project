@@ -20,9 +20,13 @@ const opts = computed(() => {
 })
 
 const lastOf = (c: (typeof chats.value)[number]) => c.messages[c.messages.length - 1]
+/** "Baraka AI yordamchi" — ro'yxat tepasida alohida yashil karta */
+const aiThread = computed(() => chats.value.find(c => c.kind === 'ai'))
+const showAiCard = computed(() => !!aiThread.value && !query.value.trim() && (filter.value === 'all' || filter.value === 'ai'))
 const list = computed(() => {
   const q = query.value.trim().toLowerCase()
   return chats.value
+    .filter(c => !(showAiCard.value && c.kind === 'ai'))
     .filter(c => filter.value === 'all' || c.kind === filter.value)
     .filter(c => !q || c.title.toLowerCase().includes(q) || c.messages.some(m => m.text.toLowerCase().includes(q)))
     .sort((a, b) => (lastOf(b)?.time ?? '').localeCompare(lastOf(a)?.time ?? ''))
@@ -52,9 +56,22 @@ function preview(c: (typeof chats.value)[number]) {
     <div class="px-5"><Chips v-model="filter" :options="opts" /></div>
   </div>
 
-  <div class="no-scrollbar min-h-0 grow overflow-y-auto px-5 pb-6">
-    <EmptyState v-if="!list.length" icon="chat" title="Suhbat topilmadi" text="Boshqa filtr yoki so'zni sinab ko'ring" />
-    <div v-else class="card divide-y divide-line overflow-hidden">
+  <div class="no-scrollbar flex min-h-0 grow flex-col gap-3 overflow-y-auto px-5 pb-6">
+    <NuxtLink
+      v-if="showAiCard && aiThread" :to="`/chat/${aiThread.id}`"
+      class="flex items-center gap-3 rounded-[20px] bg-brand px-4 py-3.5 text-white shadow-float transition-transform active:scale-[0.99]"
+    >
+      <img src="/assets/ai-robot-head.png" alt="" class="h-10 w-[52px] shrink-0 object-contain">
+      <span class="min-w-0 grow">
+        <span class="flex items-center gap-2">
+          <span class="truncate text-[15px] font-extrabold">{{ aiThread.title }}</span>
+          <span class="ml-auto shrink-0 text-[11px] font-semibold text-white/70">{{ timeLabel(lastOf(aiThread)?.time) }}</span>
+        </span>
+        <span class="mt-0.5 block truncate text-[13px] font-medium text-white/80">{{ preview(aiThread) }}</span>
+      </span>
+    </NuxtLink>
+    <EmptyState v-if="!list.length && !showAiCard" icon="chat" title="Suhbat topilmadi" text="Boshqa filtr yoki so'zni sinab ko'ring" />
+    <div v-else-if="list.length" class="card divide-y divide-line overflow-hidden">
       <NuxtLink v-for="c in list" :key="c.id" :to="`/chat/${c.id}`" class="flex items-center gap-3 px-4 py-3.5 active:bg-field">
         <ChatThreadAvatar :thread="c" />
         <span class="min-w-0 grow">

@@ -111,7 +111,7 @@ function openReport() {
             :class="period === 'custom' ? 'bg-white text-brand' : 'text-[#d5e5dc]'"
             @click="openCalendar"
           >
-            <AppIcon name="calendar" :size="14" />
+            <AppIcon name="calendar" :size="14" :stroke="2.2" />
           </button>
         </div>
       </div>

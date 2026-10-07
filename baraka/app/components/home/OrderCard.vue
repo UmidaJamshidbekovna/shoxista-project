@@ -36,13 +36,13 @@ const status = computed(() => STATUS[props.tx.status] ?? ['#4a5a52', '#eef0f3'])
         class="flex size-[38px] shrink-0 items-center justify-center rounded-xl"
         :style="{ background: channel[1], color: channel[0] }"
       >
-        <AppIcon :name="channelIcon[tx.channel] as IconName" :size="19" />
+        <AppIcon :name="channelIcon[tx.channel] as IconName" :size="18" :stroke="1.9" />
       </span>
       <span class="min-w-0 grow">
         <span class="block truncate text-[14px] font-extrabold text-ink">{{ who }}</span>
         <span class="block truncate text-[11px] font-semibold text-muted">{{ tx.no }} · {{ formatTime(tx.date) }}</span>
       </span>
-      <AppIcon name="chevron-right" :size="16" class="shrink-0 text-muted" />
+      <AppIcon name="chevron-right" :size="18" :stroke="2.2" class="shrink-0 text-muted" />
     </div>
     <div class="flex items-center justify-between gap-2">
       <span class="min-w-0 truncate text-[17px] font-extrabold tracking-[-0.01em] text-ink">{{ formatSom(tx.total) }}</span>

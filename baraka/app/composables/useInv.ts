@@ -22,7 +22,7 @@ export const invAdjustReasonLabel: Record<AdjustReason, string> = {
 export const invStockLabel = { ok: 'Yetarli', low: 'Kam qolgan', out: 'Tugagan' } as const
 export const invStockTone = { ok: 'brand', low: 'warn', out: 'danger' } as const
 
-export const invUnitLabel: Record<Product['unit'], string> = { dona: 'dona', kg: 'kg', litr: 'litr', qadoq: 'qadoq' }
+export const invUnitLabel: Record<Product['unit'], string> = { dona: 'dona', kg: 'kg', litr: 'litr', quti: 'quti', blok: 'blok', paket: 'paket', metr: 'metr', qadoq: 'qadoq' }
 
 export const INV_CATEGORY_COLORS = [
   '#05472a', '#0e8a5f', '#65a30d', '#1d5bd8', '#0891b2', '#7c3aed',

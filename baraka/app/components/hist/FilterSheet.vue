@@ -1,75 +1,63 @@
 <script setup lang="ts">
-import type { HistFilters } from '~/composables/useHistFilters'
-import { channelLabel, methodLabel, payStatusLabel, statusLabel } from '~/data/labels'
-
+// Tarix: Filtr sheet (Stock and History.md §II.7). Tanlovlar avval hfDraft ga yoziladi,
+// faqat "Ko'rsatish (N)" bosilganda hf ga qo'llanadi.
 const open = defineModel<boolean>({ default: false })
-const { filters } = useHistFilters()
-const { selection } = useTelegram()
+const { settings } = useStore()
+const { dir, hf, hfDraft } = useHistFilters()
+const { run } = useHistList()
+const { selection, haptic } = useTelegram()
 
-// Sheet ichida qoralama; "Qo'llash" bosilganda saqlanadi
-const draft = ref<HistFilters>(emptyHistFilters())
-watch(open, (v) => { if (v) draft.value = JSON.parse(JSON.stringify(filters.value)) })
+watch(open, (v) => { if (v) hfDraft.value = { ...hf.value } }, { immediate: true })
 
-const toOpts = (r: Record<string, string>) => Object.entries(r).map(([value, label]) => ({ value, label }))
-const channelOpts = toOpts(channelLabel)
-const statusOpts = toOpts(statusLabel)
-const payOpts = toOpts(payStatusLabel)
-const methodOpts = toOpts(methodLabel)
-const segOpts = [{ value: '', label: 'Hammasi' }, { value: 'B2C', label: 'B2C' }, { value: 'B2B', label: 'B2B' }]
+const groups = computed(() => HIST_GROUPS.filter(g => histKeyApplies(g.k, dir.value, settings.value.b2b)))
+const count = computed(() => run(hfDraft.value).length)
 
-const draftCount = computed(() => {
-  const f = draft.value
-  return f.channels.length + (f.segment ? 1 : 0) + f.statuses.length + f.payStatuses.length + f.methods.length
-})
-
-function toggle<K extends keyof Omit<HistFilters, 'segment'>>(key: K, v: string) {
+function pick(k: HistKey, v: string) {
   selection()
-  const arr = draft.value[key] as string[]
-  draft.value[key] = (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]) as HistFilters[K]
-}
-function apply() {
-  filters.value = JSON.parse(JSON.stringify(draft.value))
-  open.value = false
+  hfDraft.value = { ...hfDraft.value, [k]: v }
 }
 function clear() {
-  draft.value = emptyHistFilters()
   selection()
+  hfDraft.value = emptyHistFilters()
 }
-const groups = [
-  { key: 'channels', title: 'Kanal', opts: channelOpts },
-  { key: 'statuses', title: 'Buyurtma holati', opts: statusOpts },
-  { key: 'payStatuses', title: 'To\'lov holati', opts: payOpts },
-  { key: 'methods', title: 'To\'lov turi', opts: methodOpts },
-] as const
+function apply() {
+  haptic('light')
+  hf.value = { ...hfDraft.value }
+  open.value = false
+}
 </script>
 
 <template>
-  <BSheet v-model="open" title="Filtr">
-    <div class="flex flex-col gap-5">
-      <section class="flex flex-col gap-2.5">
-        <h3 class="text-[13px] font-extrabold text-muted-2">Segment</h3>
-        <Segmented v-model="draft.segment" :options="segOpts" />
-      </section>
-      <section v-for="g in groups" :key="g.key" class="flex flex-col gap-2.5">
-        <h3 class="text-[13px] font-extrabold text-muted-2">{{ g.title }}</h3>
-        <div class="flex flex-wrap gap-2">
+  <BSheet v-model="open" tone="card">
+    <div class="flex items-center justify-between gap-3 pt-2 pb-4">
+      <h2 class="text-[19px] font-extrabold text-ink">Filtrlar</h2>
+      <button type="button" class="text-[13px] font-bold text-muted" @click="clear">Tozalash</button>
+    </div>
+
+    <div class="flex flex-col gap-[18px]">
+      <section v-for="g in groups" :key="g.k" class="flex flex-col gap-2.5">
+        <h3 class="text-[13px] font-bold text-[#5C6576]">{{ g.title }}</h3>
+        <div class="flex flex-wrap gap-1.5">
           <button
-            v-for="o in g.opts" :key="o.value" type="button"
-            class="flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-bold transition-colors"
-            :class="(draft[g.key] as string[]).includes(o.value) ? 'bg-brand text-white' : 'bg-card text-muted-2 shadow-card'"
-            @click="toggle(g.key, o.value)"
+            v-for="o in g.opts" :key="o" type="button"
+            class="rounded-[18px] border px-[13px] py-2 text-[12.5px] leading-4 font-bold transition-colors"
+            :class="hfDraft[g.k] === o ? 'border-brand bg-brand text-white' : 'border-[#e4e7eb] bg-card text-ink'"
+            @click="pick(g.k, o)"
           >
-            <AppIcon v-if="(draft[g.key] as string[]).includes(o.value)" name="check" :size="14" :stroke="2.6" />
-            {{ o.label }}
+            {{ o }}
           </button>
         </div>
       </section>
     </div>
+
     <template #footer>
-      <div class="grid grid-cols-[auto_1fr] gap-2.5">
-        <PillButton variant="field" :disabled="!draftCount" @click="clear">Tozalash</PillButton>
-        <PillButton block @click="apply">Qo'llash<span v-if="draftCount" class="rounded-full bg-white/20 px-2 text-xs">{{ draftCount }}</span></PillButton>
-      </div>
+      <button
+        type="button"
+        class="h-[54px] w-full rounded-full bg-brand text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+        @click="apply"
+      >
+        Ko'rsatish ({{ count }})
+      </button>
     </template>
   </BSheet>
 </template>

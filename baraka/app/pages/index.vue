@@ -8,10 +8,9 @@ const {
   business, branchById, currentBranchId, receivable, payable, transactions,
   unreadNotifications, unreadChats,
 } = useStore()
-const { filters, kind } = useHistFilters()
+const { dir: histDir, hf, hfDraft } = useHistFilters()
 const { selection, haptic } = useTelegram()
 const { show } = useToast()
-const aiOpen = ref(false)
 
 const owner = computed(() => business.value.owner.split(' ')[0])
 const branch = computed(() => branchById(currentBranchId.value)?.name ?? '')
@@ -21,10 +20,11 @@ const ACTIVE: OrderStatus[] = ['pending', 'processing', 'shipping']
 const customerOrders = computed(() => transactions.value.filter(t => t.kind === 'sale' && ACTIVE.includes(t.status)))
 const supplierActive = computed(() => transactions.value.filter(t => t.kind === 'purchase' && ACTIVE.includes(t.status)))
 
-/** Qarz kartasi → Tarix, qarzdorlik filtri bilan (§4) */
+/** Qarz kartasi → Tarix: "Mijoz qarzi" → Sotuvlar, "Bizning qarz" → Xaridlar; to'lov holati "Qarz" (Stock and History.md §III) */
 function openDebts(k: 'sale' | 'purchase') {
-  kind.value = k
-  filters.value = { ...emptyHistFilters(), payStatuses: ['unpaid', 'partial'] }
+  histDir.value = k === 'sale' ? 'out' : 'in'
+  hf.value = { ...emptyHistFilters(), pay: 'Qarz' }
+  hfDraft.value = { ...hf.value }
   haptic('light')
   navigateTo('/tarix')
 }
@@ -34,58 +34,12 @@ const services: { label: string, icon: IconName, to?: string }[] = [
   { label: 'Tashkilotlar', icon: 'building', to: '/mijozlar?tab=org' },
   { label: 'Kategoriya', icon: 'grid', to: '/ombor/kategoriyalar' },
   { label: 'Hisobot', icon: 'chart', to: '/ombor/hisobot' },
-  { label: 'Barchasi', icon: 'more' },
+  { label: 'Barchasi', icon: 'apps' },
 ]
 
 function openService(s: { to?: string }) {
   if (s.to) return selection()
   show('Barcha xizmatlar ro\'yxati tayyorlanmoqda', 'info')
-}
-
-// --- suzuvchi AI robot: vertikal sudrash, joyi localStorage'da (§8) ---
-const ROBOT_KEY = 'sm_robotY'
-const robot = ref<HTMLElement>()
-const robotY = ref(420)
-const dragging = ref(false)
-let startY = 0
-let startTop = 0
-let moved = 0
-
-function clampY(v: number) {
-  const h = robot.value?.parentElement?.clientHeight ?? 844
-  return Math.max(60, Math.min(Math.min(600, h - 170), v))
-}
-
-onMounted(() => {
-  const saved = Number(localStorage.getItem(ROBOT_KEY))
-  robotY.value = clampY(saved || 520)
-})
-
-function onDown(e: PointerEvent) {
-  dragging.value = true
-  startY = e.clientY
-  startTop = robotY.value
-  moved = 0
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-}
-
-function onMove(e: PointerEvent) {
-  if (!dragging.value) return
-  const dy = e.clientY - startY
-  moved = Math.max(moved, Math.abs(dy))
-  robotY.value = clampY(startTop + dy)
-}
-
-function onUp() {
-  if (!dragging.value) return
-  dragging.value = false
-  try { localStorage.setItem(ROBOT_KEY, String(robotY.value)) }
-  catch {}
-  // 5px dan kam siljigan bo'lsa — bosish deb hisoblanadi
-  if (moved < 5) {
-    haptic('medium')
-    aiOpen.value = true
-  }
 }
 </script>
 
@@ -98,8 +52,8 @@ function onUp() {
         <p class="mt-[3px] truncate text-[13px] font-semibold text-muted">{{ business.name }} · {{ branch }}</p>
       </div>
       <div class="flex shrink-0 items-center gap-2">
-        <RoundButton icon="bell" label="Bildirishnomalar" to="/bildirishnomalar" :dot="unreadNotifications > 0" />
-        <RoundButton icon="chat" label="Chat" to="/chat" :badge="unreadChats || undefined" badge-tone="brand" />
+        <RoundButton icon="bell" label="Bildirishnomalar" to="/bildirishnomalar" :stroke="1.8" :dot="unreadNotifications > 0" />
+        <RoundButton icon="chat" label="Chat" to="/chat" :stroke="1.8" :badge="unreadChats || undefined" badge-tone="brand" />
       </div>
     </header>
 
@@ -113,7 +67,7 @@ function onUp() {
         class="flex items-center gap-2.5 rounded-[18px] bg-card py-2.5 pr-2 pl-2.5 text-left shadow-card transition-transform active:scale-[0.98]"
         @click="openDebts('sale')"
       >
-        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-soft text-brand"><AppIcon name="arrow-down" :size="18" :stroke="2.4" /></span>
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-soft text-brand"><AppIcon name="coins" :size="18" :stroke="2" /></span>
         <span class="min-w-0">
           <span class="block truncate text-[14px] font-bold text-muted">Mijoz qarzi</span>
           <span class="block truncate text-[16px] font-extrabold text-brand">{{ formatSom(receivable) }}</span>
@@ -124,7 +78,7 @@ function onUp() {
         class="flex items-center gap-2.5 rounded-[18px] bg-card py-2.5 pr-2 pl-2.5 text-left shadow-card transition-transform active:scale-[0.98]"
         @click="openDebts('purchase')"
       >
-        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e3f4f1] text-[#0f766e]"><AppIcon name="arrow-up" :size="18" :stroke="2.4" /></span>
+        <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#e3f4f1] text-[#0f766e]"><AppIcon name="undo" :size="18" :stroke="2" /></span>
         <span class="min-w-0">
           <span class="block truncate text-[14px] font-bold text-muted">Bizning qarz</span>
           <span class="block truncate text-[16px] font-extrabold text-[#0f766e]">{{ formatSom(payable) }}</span>
@@ -132,16 +86,18 @@ function onUp() {
       </button>
     </div>
 
-    <!-- 4. Mijoz buyurtmalari -->
+    <!-- 4. Mijoz buyurtmalari (bo'sh bo'lsa ko'rsatilmaydi) -->
     <HomeOrderRail
-      title="Mijoz buyurtmalari" :items="customerOrders" all-to="/tarix"
+      v-if="customerOrders.length"
+      title="Mijoz buyurtmalari" :items="customerOrders" all-to="/tarix?dir=out"
       empty-icon="cart" empty-title="Hozircha aktiv buyurtma yo'q"
       empty-text="Yangi buyurtma kelganda shu yerda ko'rinadi"
     />
 
-    <!-- 5. Ta'minotchilarga buyurtmalar -->
+    <!-- 5. Ta'minotchilarga buyurtmalar (bo'sh bo'lsa ko'rsatilmaydi) -->
     <HomeOrderRail
-      title="Ta'minotchilarga buyurtmalar" :items="supplierActive" all-to="/tarix" new-card
+      v-if="supplierActive.length"
+      title="Ta'minotchilarga buyurtmalar" :items="supplierActive" all-to="/tarix?dir=in" new-card
       empty-icon="truck" empty-title="Ta'minotchilarga aktiv buyurtma yo'q"
       empty-text="Coca-Cola, non yoki sut ta'minotchisiga ilovadan buyurtma bering"
       @new="navigateTo('/taminotchilar')"
@@ -157,8 +113,8 @@ function onUp() {
           class="group flex w-[68px] shrink-0 flex-col items-center gap-1.5"
           @click="openService(s)"
         >
-          <span class="flex size-[60px] items-center justify-center rounded-full bg-card text-brand shadow-card transition-transform group-active:scale-[0.94]">
-            <AppIcon :name="s.icon" :size="22" />
+          <span class="flex size-[60px] items-center justify-center rounded-full bg-card text-brand shadow-card transition-transform duration-150 group-active:scale-[0.94]">
+            <AppIcon :name="s.icon" :size="22" :stroke="1.8" />
           </span>
           <span class="w-full truncate text-center text-[11.5px] font-semibold text-muted-2">{{ s.label }}</span>
         </component>
@@ -166,25 +122,6 @@ function onUp() {
     </section>
   </div>
 
-  <!-- suzuvchi AI robot (vertikal sudraladi) -->
-  <button
-    ref="robot" type="button" aria-label="AI yordamchi"
-    class="absolute right-5 z-30 flex size-[62px] touch-none items-center justify-center rounded-full bg-[linear-gradient(145deg,#14a36f,#05472a)] text-white shadow-[0_12px_28px_rgba(5,71,42,0.4)]"
-    :class="dragging ? 'scale-105 cursor-grabbing' : 'ai-fab cursor-grab transition-transform active:scale-90'"
-    :style="{ top: `${robotY}px` }"
-    @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp"
-  >
-    <span v-if="!dragging" class="ai-ring absolute inset-0 rounded-full border-2 border-[#22c483]" />
-    <AppIcon name="robot" :size="30" :stroke="1.8" />
-    <span class="absolute -top-1 -right-1 flex h-5 items-center rounded-full border-2 border-white bg-[#22c483] px-1.5 text-[9px] font-extrabold">AI</span>
-  </button>
-
-  <HomeAiSheet v-model="aiOpen" />
+  <!-- AI robot: chetdan mo'ralaydi, bosilganda mini oyna -->
+  <HomeAiRobot />
 </template>
-
-<style scoped>
-.ai-fab { animation: bob 3.2s ease-in-out infinite; }
-.ai-ring { animation: ring 2.4s ease-out infinite; }
-@keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
-@keyframes ring { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(1.45); opacity: 0; } }
-</style>

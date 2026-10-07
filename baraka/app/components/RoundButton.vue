@@ -12,6 +12,8 @@ const props = withDefaults(defineProps<{
   badgeTone?: 'danger' | 'brand'
   variant?: 'white' | 'field' | 'brand'
   size?: number
+  /** Ikonka chizig'i qalinligi (Home Icons.md: header 1.8) */
+  stroke?: number
 }>(), { variant: 'white', size: 46, badgeTone: 'danger' })
 const NuxtLink = resolveComponent('NuxtLink')
 </script>
@@ -27,7 +29,7 @@ const NuxtLink = resolveComponent('NuxtLink')
     }"
     :style="{ width: `${props.size}px`, height: `${props.size}px` }"
   >
-    <AppIcon :name="icon" />
+    <AppIcon :name="icon" :stroke="stroke ?? 2" />
     <span
       v-if="badge"
       class="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-app px-1 text-[11px] font-extrabold text-white"

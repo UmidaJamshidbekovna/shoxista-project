@@ -9,13 +9,18 @@ export type DebtTerm = '3d' | '1w' | '2w' | '1m'
 
 export interface Category { id: string, name: string, color: string, order: number }
 
+/** O'lchov birliklari (Stock and History.md §9). `qadoq` eski ma'lumotlar bilan moslik uchun qoldirilgan */
+export type ProductUnit = 'dona' | 'kg' | 'litr' | 'quti' | 'blok' | 'paket' | 'metr' | 'qadoq'
+
+export interface ProductReview { name: string, rating: number, text: string, date: string }
+
 export interface Product {
   id: string
   name: string
   sku: string
   barcode: string
   categoryId: string
-  unit: 'dona' | 'kg' | 'litr' | 'qadoq'
+  unit: ProductUnit
   price: number
   cost: number
   stock: number
@@ -24,6 +29,16 @@ export interface Product {
   image?: string
   /** Rasm yo'q bo'lsa ko'rsatiladigan emoji */
   emoji: string
+  /** Rasm maydoni va ro'yxatdagi kvadrat foni */
+  tint?: string
+  /** Mahsulot rasmlari (URL yoki data URL) */
+  images?: string[]
+  /** Ta'minotchi tashkilot (Organization.id) */
+  supplierId?: string
+  description?: string
+  /** O'rtacha reyting (1–5) */
+  rating?: number
+  reviews?: ProductReview[]
 }
 
 export interface Customer {

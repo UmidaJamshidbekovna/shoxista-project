@@ -65,47 +65,5 @@ export function useChatAi() {
     return [...new Set(out)].slice(0, 3)
   }
 
-  /** AI yordamchi javobi */
-  function aiReply(q: string): string {
-    const t = norm(q)
-    const today = dayKey(new Date().toISOString())
-    const sales = transactions.value.filter(x => x.kind === 'sale' && countsInTotal(x))
-
-    if (/(sotuv|savdo|tushum|daromad|bugun)/.test(t)) {
-      const td = sales.filter(x => dayKey(x.date) === today)
-      const sum = td.reduce((s, x) => s + x.total, 0)
-      const paid = td.reduce((s, x) => s + x.paid, 0)
-      return `Bugun ${td.length} ta sotuv, jami ${formatSom(sum)} so'm. Shundan ${formatSom(paid)} so'm to'langan, ${formatSom(sum - paid)} so'm nasiya.`
-    }
-    if (/(qarz|nasiya|qarzdor)/.test(t)) {
-      const top = customers.value.filter(c => c.debt > 0).sort((a, b) => b.debt - a.debt).slice(0, 3)
-      return `Mijozlar sizga jami ${formatSom(store.receivable.value)} so'm qarz. Eng ko'p: ${top.map(c => `${c.name} — ${formatSom(c.debt)}`).join('; ')}. Siz ta'minotchilarga ${formatSom(store.payable.value)} so'm qarzsiz.`
-    }
-    if (/(kam|tuga|qoldiq|ombor|zaxira)/.test(t)) {
-      if (!lowStock.value.length) return 'Hamma mahsulotlar yetarli, kam qolgani yo\'q.'
-      return `Kam qolgan mahsulotlar: ${lowStock.value.map(p => `${p.name} — ${p.stock} ${p.unit}`).join(', ')}. Ta'minotchiga buyurtma tayyorlab beraymi?`
-    }
-    if (/(buyurtma|online|zakaz)/.test(t)) {
-      const a = activeOnlineOrders.value
-      if (!a.length) return 'Hozir faol online buyurtma yo\'q.'
-      return `${a.length} ta faol online buyurtma: ${a.map(o => `${o.no} (${statusLabel[o.status]})`).join(', ')}.`
-    }
-    if (/(top|eng ko'p|ommabop|yaxshi sotil)/.test(t)) {
-      const qty: Record<string, number> = {}
-      for (const s of sales) for (const i of s.items) qty[i.name] = (qty[i.name] ?? 0) + i.qty
-      const top = Object.entries(qty).sort((a, b) => b[1] - a[1]).slice(0, 3)
-      return `Eng ko'p sotilganlar: ${top.map(([n, q], i) => `${i + 1}. ${n} — ${q} ta`).join('; ')}.`
-    }
-    if (/^(ha|xo'p|mayli|tayyorla|ok)/.test(t)) {
-      const low = lowStock.value
-      return `Buyurtma qoralamasi tayyor: ${low.map(p => `${p.name} × ${Math.max(p.minStock * 2 - p.stock, 10)}`).join(', ')}. Ombor → Kirim bo'limida tasdiqlang.`
-    }
-    const ps = findProducts(t)
-    if (ps.length) return ps.map(p => `${p.name}: narxi ${formatSom(p.price)} so'm, tannarx ${formatSom(p.cost)}, qoldiq ${p.stock} ${p.unit}.`).join(' ')
-    return 'Men savdo, qarzlar, ombor qoldig\'i, online buyurtmalar va mahsulot narxlari bo\'yicha yordam bera olaman. Masalan: "Bugungi savdo qancha?"'
-  }
-
-  const aiPrompts = ['Bugungi savdo qancha?', 'Kim qarzdor?', 'Kam qolgan mahsulotlar', 'Faol buyurtmalar', 'Eng ko\'p sotilganlar']
-
-  return { suggestions, aiReply, aiPrompts, findProducts }
+  return { suggestions, findProducts }
 }

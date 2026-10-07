@@ -64,15 +64,87 @@ export const categories: Category[] = [
   { id: 'c5', name: 'Maishiy kimyo', color: '#7c3aed', order: 5 },
 ]
 
+// tint — rasm foni; supplierId — ta'minotchi (o1 sut, o2 ulgurji, o3 shirinlik); reviews — mijozlar sharhlari
 export const products: Product[] = [
-  { id: 'p1', name: 'Guruch Lazer 1 kg', sku: 'GR-001', barcode: '4780001000011', categoryId: 'c1', unit: 'kg', price: 18000, cost: 14500, stock: 64, minStock: 20, warehouseId: 'w1', emoji: '🍚' },
-  { id: 'p2', name: 'Sut 2.5% 1 L', sku: 'ST-002', barcode: '4780001000028', categoryId: 'c3', unit: 'dona', price: 12500, cost: 9800, stock: 4, minStock: 15, warehouseId: 'w1', emoji: '🥛' },
-  { id: 'p3', name: 'Kungaboqar yog\'i 1 L', sku: 'YG-003', barcode: '4780001000035', categoryId: 'c1', unit: 'dona', price: 24000, cost: 19500, stock: 31, minStock: 10, warehouseId: 'w1', emoji: '🌻' },
-  { id: 'p4', name: 'Ko\'k choy 100 g', sku: 'CH-004', barcode: '4780001000042', categoryId: 'c2', unit: 'dona', price: 9000, cost: 6200, stock: 48, minStock: 12, warehouseId: 'w1', emoji: '🍵' },
-  { id: 'p5', name: 'Tuxum (10 dona)', sku: 'TX-005', barcode: '4780001000059', categoryId: 'c1', unit: 'qadoq', price: 16000, cost: 13000, stock: 0, minStock: 10, warehouseId: 'w1', emoji: '🥚' },
-  { id: 'p6', name: 'Coca-Cola 1.5 L', sku: 'CC-006', barcode: '4780001000066', categoryId: 'c2', unit: 'dona', price: 14000, cost: 10500, stock: 56, minStock: 24, warehouseId: 'w1', emoji: '🥤' },
-  { id: 'p7', name: 'Shokolad Alpen Gold', sku: 'SH-007', barcode: '4780001000073', categoryId: 'c4', unit: 'dona', price: 15000, cost: 11000, stock: 7, minStock: 10, warehouseId: 'w1', emoji: '🍫' },
-  { id: 'p8', name: 'Kir yuvish kukuni 3 kg', sku: 'KK-008', barcode: '4780001000080', categoryId: 'c5', unit: 'dona', price: 54000, cost: 42000, stock: 22, minStock: 5, warehouseId: 'w1', emoji: '🧺' },
+  {
+    id: 'p1', name: 'Guruch Lazer 1 kg', sku: 'GR-001', barcode: '4780001000011', categoryId: 'c1', unit: 'kg', price: 18000, cost: 14500, stock: 64, minStock: 20, warehouseId: 'w1', emoji: '🍚',
+    tint: '#f3ecdf', supplierId: 'o2', rating: 4.7,
+    description: 'Lazer navli oq guruch — palov va garnir uchun. Donalari uzun, pishganda yopishmaydi. 1 kg li qadoqda.',
+    reviews: [
+      { name: 'Dilnoza K.', rating: 5, text: 'Palovga juda mos, donalari ochilib pishadi.', date: ago(2, '10:20') },
+      { name: 'Javohir Q.', rating: 5, text: 'Har doim shu guruchni olaman, sifati barqaror.', date: ago(6, '18:05') },
+      { name: 'Madina Y.', rating: 4, text: 'Yaxshi, lekin biroz yuvish kerak bo\'ladi.', date: ago(11, '12:40') },
+    ],
+  },
+  {
+    id: 'p2', name: 'Sut 2.5% 1 L', sku: 'ST-002', barcode: '4780001000028', categoryId: 'c3', unit: 'dona', price: 12500, cost: 9800, stock: 4, minStock: 15, warehouseId: 'w1', emoji: '🥛',
+    tint: '#e6effb', supplierId: 'o1', rating: 4.5,
+    description: 'Pasterizatsiyalangan sigir suti, yog\'liligi 2.5%. Har kuni yangi partiya, sovutgichda +2…+6 °C da saqlang.',
+    reviews: [
+      { name: 'Nilufar R.', rating: 5, text: 'Yangi va mazali, bolalarga ham beraman.', date: ago(1, '09:15') },
+      { name: 'Sardor A.', rating: 4, text: 'Yaxshi sut, faqat tez tugab qoladi.', date: ago(4, '19:30') },
+      { name: 'Gulnora S.', rating: 4, text: 'Narxi qulay, sifati yaxshi.', date: ago(9, '08:50') },
+      { name: 'Bekzod T.', rating: 5, text: 'Qaynatganda ko\'pirmaydi, tabiiy ta\'mi bor.', date: ago(15, '17:10') },
+    ],
+  },
+  {
+    id: 'p3', name: 'Kungaboqar yog\'i 1 L', sku: 'YG-003', barcode: '4780001000035', categoryId: 'c1', unit: 'dona', price: 24000, cost: 19500, stock: 31, minStock: 10, warehouseId: 'w1', emoji: '🌻',
+    tint: '#fbf1d6', supplierId: 'o2', rating: 4.4,
+    description: 'Tozalangan, hidsizlantirilgan kungaboqar yog\'i. Qovurish va salatlar uchun, 1 litrli plastik idishda.',
+    reviews: [
+      { name: 'Madina Y.', rating: 5, text: 'Qovurganda tutun chiqarmaydi, hidi yo\'q.', date: ago(3, '13:00') },
+      { name: 'Javohir Q.', rating: 4, text: 'Oddiy, sifatli yog\'. Narxi o\'rtacha.', date: ago(8, '20:15') },
+    ],
+  },
+  {
+    id: 'p4', name: 'Ko\'k choy 100 g', sku: 'CH-004', barcode: '4780001000042', categoryId: 'c2', unit: 'dona', price: 9000, cost: 6200, stock: 48, minStock: 12, warehouseId: 'w1', emoji: '🍵',
+    tint: '#e3f1e4', supplierId: 'o2', rating: 4.8,
+    description: 'Yirik bargli ko\'k choy, 100 g qadoqda. Xushbo\'y, damlaganda tiniq och-yashil rang beradi.',
+    reviews: [
+      { name: 'Dilnoza K.', rating: 5, text: 'Xushbo\'y choy, mehmonlarga ham uyalmay damlayman.', date: ago(1, '16:45') },
+      { name: 'Sardor A.', rating: 5, text: 'Eng yaxshi ko\'k choy shu.', date: ago(5, '11:20') },
+      { name: 'Nilufar R.', rating: 4, text: 'Mazali, lekin qadog\'i kichikroq.', date: ago(12, '09:40') },
+    ],
+  },
+  {
+    id: 'p5', name: 'Tuxum (10 dona)', sku: 'TX-005', barcode: '4780001000059', categoryId: 'c1', unit: 'quti', price: 16000, cost: 13000, stock: 0, minStock: 10, warehouseId: 'w1', emoji: '🥚',
+    tint: '#f6eadf', supplierId: 'o2', rating: 4.2,
+    description: 'Tovuq tuxumi, birinchi navli. 10 dona karton qutida, sovuq joyda saqlang.',
+    reviews: [
+      { name: 'Gulnora S.', rating: 4, text: 'Tuxumlar yirik, lekin 1 tasi singan edi.', date: ago(2, '08:30') },
+      { name: 'Bekzod T.', rating: 5, text: 'Yangi tuxum, sarig\'i to\'q rangli.', date: ago(7, '18:00') },
+      { name: 'Madina Y.', rating: 4, text: 'Yaxshi, tez-tez tugab qolyapti.', date: ago(10, '14:10') },
+    ],
+  },
+  {
+    id: 'p6', name: 'Coca-Cola 1.5 L', sku: 'CC-006', barcode: '4780001000066', categoryId: 'c2', unit: 'dona', price: 14000, cost: 10500, stock: 56, minStock: 24, warehouseId: 'w1', emoji: '🥤',
+    tint: '#fbe3e1', supplierId: 'o2', rating: 4.6,
+    description: 'Gazlangan alkogolsiz ichimlik, 1.5 litrli shishada. Sovutib iste\'mol qilish tavsiya etiladi.',
+    reviews: [
+      { name: 'Sardor A.', rating: 5, text: 'Har doim sovuq holda bor, rahmat!', date: ago(0, '12:10') },
+      { name: 'Javohir Q.', rating: 4, text: 'Narxi boshqa do\'konlardan biroz arzon.', date: ago(4, '21:00') },
+      { name: 'Dilnoza K.', rating: 5, text: 'Mehmondorchilik uchun doim shu yerdan olaman.', date: ago(13, '17:35') },
+    ],
+  },
+  {
+    id: 'p7', name: 'Shokolad Alpen Gold', sku: 'SH-007', barcode: '4780001000073', categoryId: 'c4', unit: 'dona', price: 15000, cost: 11000, stock: 7, minStock: 10, warehouseId: 'w1', emoji: '🍫',
+    tint: '#efe4f7', supplierId: 'o3', rating: 4.9,
+    description: 'Sutli shokolad, 90 g. Yumshoq ta\'m, choy bilan yoki sovg\'a uchun ajoyib tanlov.',
+    reviews: [
+      { name: 'Nilufar R.', rating: 5, text: 'Bolalarimning sevimli shokoladi.', date: ago(1, '19:20') },
+      { name: 'Gulnora S.', rating: 5, text: 'Mazasi a\'lo, doim yangi.', date: ago(6, '15:05') },
+    ],
+  },
+  {
+    id: 'p8', name: 'Kir yuvish kukuni 3 kg', sku: 'KK-008', barcode: '4780001000080', categoryId: 'c5', unit: 'paket', price: 54000, cost: 42000, stock: 22, minStock: 5, warehouseId: 'w1', emoji: '🧺',
+    tint: '#e2eef6', supplierId: 'o2', rating: 4.3,
+    description: 'Avtomat kir yuvish mashinalari uchun kukun, 3 kg. Oq va rangli kiyimlar uchun, 40 °C da ham yaxshi yuvadi.',
+    reviews: [
+      { name: 'Madina Y.', rating: 4, text: 'Dog\'larni yaxshi ketkazadi, hidi yoqimli.', date: ago(3, '10:00') },
+      { name: 'Bekzod T.', rating: 5, text: '3 kg uzoq vaqtga yetadi, tejamli.', date: ago(9, '13:45') },
+      { name: 'Dilnoza K.', rating: 4, text: 'Yaxshi kukun, lekin qadog\'i og\'ir.', date: ago(14, '18:25') },
+    ],
+  },
 ]
 
 export const customers: Customer[] = [
@@ -148,9 +220,9 @@ export const chats: ChatThread[] = [
     ],
   },
   {
-    id: 'ch4', kind: 'ai', channel: 'app', title: 'AI yordamchi', unread: 0,
+    id: 'ch4', kind: 'ai', channel: 'app', title: 'Baraka AI yordamchi', unread: 0,
     messages: [
-      { id: 'm1', from: 'ai', text: 'Salom, Aziz! Bugun sut va tuxum tugash arafasida. Oq Suv Sut MChJ ga buyurtma tayyorlab beraymi?', time: ago(0, '08:00') },
+      { id: 'm1', from: 'ai', text: 'Salom, Aziz! Savdo, ombor yoki mijozlar haqida so\'rang — ma\'lumotlaringiz asosida javob beraman.', time: ago(0, '08:00') },
     ],
   },
   {

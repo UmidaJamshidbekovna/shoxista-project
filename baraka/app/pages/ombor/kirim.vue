@@ -11,7 +11,12 @@ const TABS = [
   { value: 'ai', label: 'AI nakladnoy' },
   { value: 'order', label: 'Buyurtma' },
 ]
-const tab = ref<'scan' | 'ai' | 'order'>('scan')
+// ?tab=scan|ai|order — tanlangan tab (Ombor "Mahsulot qo'shish" sheet / Mahsulot sahifasidan), ?org= — ta'minotchi
+const route = useRoute()
+type KirimTab = 'scan' | 'ai' | 'order'
+const queryTab = (v: unknown): KirimTab => (['scan', 'ai', 'order'] as const).find(t => t === v) ?? 'scan'
+const tab = ref<KirimTab>(queryTab(route.query.tab))
+watch(() => route.query.tab, (v) => { if (v) tab.value = queryTab(v) })
 
 const lineValid = (l: KirimLine) => invParseNum(l.qty) > 0 && invParseNum(l.cost) >= 0
 const lineSum = (l: KirimLine) => lineValid(l) ? invParseNum(l.qty) * invParseNum(l.cost) : 0
@@ -140,7 +145,12 @@ function resetAi() {
 onBeforeUnmount(() => { if (aiPreview.value) URL.revokeObjectURL(aiPreview.value) })
 
 // ---------- Tashkilotdan buyurtma ----------
-const orderOrg = ref('')
+const queryOrg = () => {
+  const id = String(route.query.org ?? '')
+  return store.orgById(id) ? id : ''
+}
+const orderOrg = ref(queryOrg())
+watch(() => route.query.org, () => { if (queryOrg()) orderOrg.value = queryOrg() })
 const orderQty = ref<Record<string, number>>({})
 const orderQ = ref('')
 const orderNote = ref('')
@@ -436,7 +446,7 @@ function confirmKirim() {
     </template>
   </BSheet>
 
-  <InvProductForm v-model="createOpen" :barcode="createBarcode" @saved="onCreated" />
+  <StockProductSheet v-model="createOpen" :barcode="createBarcode" @saved="onCreated" />
 
   <!-- Tasdiqlash -->
   <BSheet v-model="confirmOpen" title="Kirimni tasdiqlash">

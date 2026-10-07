@@ -21,10 +21,10 @@ const badge = {
   <span class="relative shrink-0">
     <span
       v-if="thread.kind === 'ai'"
-      class="flex items-center justify-center rounded-full bg-gradient-to-br from-[#0e8a5f] to-brand text-white"
+      class="flex items-center justify-center rounded-full bg-brand"
       :style="{ width: `${size}px`, height: `${size}px` }"
     >
-      <AppIcon name="robot" :size="Math.round(size * 0.5)" />
+      <img src="/assets/ai-robot-head.png" alt="" class="h-auto" :style="{ width: `${Math.round(size * 0.8)}px` }">
     </span>
     <Avatar v-else-if="thread.kind === 'support'" icon="headset" :color="color" :size="size" />
     <Avatar v-else :name="thread.title" :color="color" :size="size" :square="thread.kind === 'org'" />
