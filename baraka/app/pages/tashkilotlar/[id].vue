@@ -4,8 +4,9 @@ import { methodLabel, payStatusLabel, payStatusTone, statusLabel, statusTone } f
 
 const route = useRoute()
 const router = useRouter()
-const { organizations, transactions, chats, orgById, productById, countsInTotal } = useStore()
-const { payments, addPayment } = useContactPayments()
+const { transactions, payments, chats, orgById, productById, countsInTotal } = useStore()
+const { amount, money, isUsd } = useMoney()
+const { paySupplier, receiveFromOrg, deleteOrg, orgDeleteBlock } = useLedger()
 const { show } = useToast()
 const { selection } = useTelegram()
 
@@ -60,7 +61,8 @@ const payRows = computed<PayRow[]>(() => {
   const derived: PayRow[] = orders.value.filter(t => t.paid > 0 && t.status !== 'cancelled').map(t => ({
     id: `tx-${t.id}`, date: t.date, amount: t.paid, method: t.method, dir: t.kind === 'purchase' ? 'out' : 'in', title: `#${t.no} buyurtma uchun`, txId: t.id,
   }))
-  const manual: PayRow[] = payments.value.filter(p => p.refId === id.value).map(p => ({
+  // Qo'lda kiritilgan to'lovlar; tranzaksiyaga bog'langanlari (txId) yuqoridagi `derived` qatorlarida bor
+  const manual: PayRow[] = payments.value.filter(p => p.refId === id.value && !p.txId).map(p => ({
     id: p.id, date: p.date, amount: p.amount, method: p.method, dir: p.dir, title: p.note ?? 'To\'lov',
   }))
   return [...manual, ...derived].sort((a, b) => b.date.localeCompare(a.date))
@@ -82,20 +84,20 @@ const payMax = computed(() => {
 function pay(amount: number, method: PayMethod) {
   const o = org.value
   if (!o) return
-  if (isSupplier.value) {
-    o.balance -= amount
-    addPayment({ refId: o.id, amount, method, dir: 'out', note: 'To\'lov qilindi' })
-  }
-  else {
-    o.balance += amount
-    addPayment({ refId: o.id, amount, method, dir: 'in', note: 'To\'lov qabul qilindi' })
-  }
+  const done = isSupplier.value ? paySupplier(o.id, amount, method) : receiveFromOrg(o.id, amount, method)
+  if (!done) return
   show(o.balance === 0 ? 'Hisob to\'liq yopildi' : `${formatSom(amount)} so'm to'lov saqlandi`)
 }
 
+/** Hisob yopilmagan (balans ≠ 0) tashkilotni o'chirib bo'lmaydi — pul yo'qolmasligi uchun */
+function askRemove() {
+  const block = orgDeleteBlock(id.value)
+  if (block) return show(block, 'error')
+  delOpen.value = true
+}
 function remove() {
   const name = org.value?.name
-  organizations.value = organizations.value.filter(o => o.id !== id.value)
+  if (!deleteOrg(id.value)) return
   show(`${name} o'chirildi`)
   router.replace('/mijozlar?tab=org')
 }
@@ -143,10 +145,10 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
       >
         <span class="pointer-events-none absolute -top-10 -right-10 size-36 rounded-full bg-white/10" />
         <p class="text-[13px] font-bold text-white/80">{{ org.balance > 0 ? 'Biz qarzmiz' : org.balance < 0 ? 'Bizga qarz' : 'Balans' }}</p>
-        <p class="mt-1 text-[30px] leading-tight font-extrabold">{{ formatSom(Math.abs(org.balance)) }} <span class="text-base font-bold text-white/80">so'm</span></p>
+        <p class="mt-1 text-[30px] leading-tight font-extrabold">{{ amount(Math.abs(org.balance)) }} <span v-if="!isUsd" class="text-base font-bold text-white/80">so'm</span></p>
         <div class="mt-1 flex gap-4 text-xs font-medium text-white/70">
           <span>{{ orders.length }} ta buyurtma</span>
-          <span>Aylanma: {{ formatSom(turnover) }} so'm</span>
+          <span>Aylanma: {{ money(turnover) }}</span>
         </div>
         <div class="mt-4 flex gap-2.5">
           <button type="button" class="flex h-11 grow items-center justify-center gap-1.5 rounded-full bg-white text-[13px] font-extrabold text-ink" @click="payOpen = true">
@@ -173,7 +175,7 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
               <p class="truncate text-xs font-medium text-muted">Jami {{ p.qty }} dona · oxirgi: {{ formatDay(p.lastDate) }}</p>
             </div>
             <div class="shrink-0 text-right">
-              <p class="text-sm font-extrabold">{{ formatSom(p.lastPrice) }}</p>
+              <p class="text-sm font-extrabold">{{ amount(p.lastPrice) }}</p>
               <p class="text-[11px] font-bold text-muted">oxirgi narx</p>
             </div>
           </div>
@@ -197,7 +199,7 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
               <p class="truncate text-xs font-medium text-muted">{{ formatDate(t.date) }}, {{ formatTime(t.date) }} · {{ t.items.length }} xil mahsulot</p>
             </div>
             <div class="shrink-0 text-right">
-              <p class="text-sm font-extrabold">{{ formatSom(t.total) }}</p>
+              <p class="text-sm font-extrabold">{{ amount(t.total) }}</p>
               <p class="text-[11px] font-bold" :class="toneText[payStatusTone[t.payStatus]]">{{ payStatusLabel[t.payStatus] }}</p>
             </div>
           </NuxtLink>
@@ -210,11 +212,11 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
         <div class="grid grid-cols-2 gap-2.5">
           <div class="card p-3.5">
             <p class="text-[11px] font-bold text-muted">Biz to'ladik</p>
-            <p class="text-base font-extrabold">{{ formatSom(paidOut) }} <span class="text-xs text-muted">so'm</span></p>
+            <p class="text-base font-extrabold">{{ amount(paidOut) }} <span v-if="!isUsd" class="text-xs text-muted">so'm</span></p>
           </div>
           <div class="card p-3.5">
             <p class="text-[11px] font-bold text-muted">Bizga to'landi</p>
-            <p class="text-base font-extrabold text-brand">{{ formatSom(paidIn) }} <span class="text-xs text-muted">so'm</span></p>
+            <p class="text-base font-extrabold text-brand">{{ amount(paidIn) }} <span v-if="!isUsd" class="text-xs text-muted">so'm</span></p>
           </div>
         </div>
         <div v-if="payRows.length" class="card px-4">
@@ -229,7 +231,7 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
               <p class="truncate text-sm font-bold">{{ p.title }}</p>
               <p class="truncate text-xs font-medium text-muted">{{ formatDate(p.date) }}, {{ formatTime(p.date) }} · {{ methodLabel[p.method] }}</p>
             </div>
-            <span class="shrink-0 text-sm font-extrabold" :class="p.dir === 'out' ? 'text-danger' : 'text-brand'">{{ p.dir === 'out' ? '−' : '+' }}{{ formatSom(p.amount) }}</span>
+            <span class="shrink-0 text-sm font-extrabold" :class="p.dir === 'out' ? 'text-danger' : 'text-brand'">{{ p.dir === 'out' ? '−' : '+' }}{{ amount(p.amount) }}</span>
           </component>
         </div>
         <div v-else class="card"><EmptyState icon="wallet" title="To'lovlar yo'q" text="Hali hech qanday to'lov qayd etilmagan" /></div>
@@ -258,7 +260,7 @@ const cleanName = (s: string) => s.replace(/[^\p{L}\p{N}\s]/gu, '')
         <PillButton block variant="soft" icon="edit" @click="editOpen = true">Ma'lumotlarni tahrirlash</PillButton>
       </section>
 
-      <button v-if="org.ownCreated" type="button" class="mt-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-bold text-danger" @click="delOpen = true">
+      <button v-if="org.ownCreated" type="button" class="mt-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-bold text-danger" @click="askRemove">
         <AppIcon name="trash" :size="16" />Tashkilotni o'chirish
       </button>
     </div>

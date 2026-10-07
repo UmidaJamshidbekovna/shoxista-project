@@ -2,6 +2,7 @@
 import type { SupplierListing } from '~/data/types'
 
 const { suppliers, organizations } = useStore()
+const { amount, money } = useMoney()
 const { show } = useToast()
 const { haptic, selection } = useTelegram()
 
@@ -153,7 +154,7 @@ const about: Record<string, string> = {
               <span class="line-clamp-2 text-[13px] leading-tight font-extrabold">{{ m.name }}</span>
               <span class="mt-0.5 block truncate text-[11px] font-semibold text-muted">{{ m.sub }}</span>
             </span>
-            <span v-if="m.balance && m.balance > 0" class="text-[11px] font-extrabold text-danger">{{ formatSom(m.balance) }} so'm qarz</span>
+            <span v-if="m.balance && m.balance > 0" class="text-[11px] font-extrabold text-danger">{{ money(m.balance) }} qarz</span>
             <span v-else-if="m.orgId" class="text-[11px] font-bold text-brand">Hisob toza</span>
             <span v-else class="text-[11px] font-bold text-info">Ulangan</span>
           </component>
@@ -174,7 +175,7 @@ const about: Record<string, string> = {
                 <span class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-muted-2">
                   <span class="flex items-center gap-0.5 text-warn"><AppIcon name="star" :size="12" class="fill-current" />{{ s.rating.toFixed(1) }}</span>
                   <span class="flex items-center gap-1"><AppIcon name="box" :size="12" />{{ s.products }} mahsulot</span>
-                  <span class="flex items-center gap-1"><AppIcon name="cart" :size="12" />min {{ formatSom(s.minOrder) }}</span>
+                  <span class="flex items-center gap-1"><AppIcon name="cart" :size="12" />min {{ amount(s.minOrder) }}</span>
                 </span>
               </span>
               <AppIcon name="chevron-right" :size="18" class="mt-1 shrink-0 text-muted" />
@@ -237,7 +238,7 @@ const about: Record<string, string> = {
           <p class="mt-1 text-sm font-medium text-muted-2">{{ about[detail.category] ?? 'Ishonchli ulgurji ta\'minotchi.' }}</p>
           <p class="mt-3 text-xs font-bold text-muted">Shartlar</p>
           <ul class="mt-1 flex flex-col gap-1 text-sm font-medium text-muted-2">
-            <li class="flex items-center gap-2"><AppIcon name="cart" :size="15" class="text-brand" />Minimal buyurtma: {{ formatSom(detail.minOrder) }} so'm</li>
+            <li class="flex items-center gap-2"><AppIcon name="cart" :size="15" class="text-brand" />Minimal buyurtma: {{ money(detail.minOrder) }}</li>
             <li class="flex items-center gap-2"><AppIcon name="truck" :size="15" class="text-brand" />Yetkazib berish: {{ detail.city }} bo'ylab 1–2 kun</li>
             <li class="flex items-center gap-2"><AppIcon name="wallet" :size="15" class="text-brand" />To'lov: o'tkazma, naqd, muddatli</li>
           </ul>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DebtTerm, PayMethod, PayStatus } from '~/data/types'
+import type { DebtTerm, PayMethod } from '~/data/types'
 import { debtTermDays, debtTermLabel, methodIcon, methodLabel } from '~/data/labels'
 import type { IconName } from '~/components/AppIcon.vue'
 
@@ -10,6 +10,7 @@ const pos = usePos()
 const { cart, lines, total, subtotal, customer, store } = pos
 const { show } = useToast()
 const { notify } = useTelegram()
+const { sell } = useLedger()
 
 const METHODS: PayMethod[] = ['cash', 'card', 'click', 'payme', 'transfer', 'balance']
 const rows = ref<{ method: PayMethod, value: string }[]>([])
@@ -29,7 +30,7 @@ watch(open, (v) => {
 })
 
 const balance = computed(() => Math.max(0, -(customer.value?.debt ?? 0)))
-const num = (s: string) => Number(String(s).replace(/\s/g, '')) || 0
+const num = (s: string) => parseNum(s, { decimalComma: false }) || 0
 const amountOf = (m: PayMethod) => rows.value.filter(r => r.method === m).reduce((s, r) => s + num(r.value), 0)
 const paidSum = computed(() => rows.value.reduce((s, r) => s + num(r.value), 0))
 const nonCash = computed(() => paidSum.value - amountOf('cash'))
@@ -96,9 +97,7 @@ const dueDate = computed(() => {
 function finish() {
   if (errors.value.length || busy.value) return
   busy.value = true
-  const now = new Date().toISOString()
   const debt = debtOn.value ? remaining.value : 0
-  const cust = customer.value
   // naqd qaytim chiqarilgan holda to'lovlar
   const payments = rows.value
     .map(r => ({ method: r.method, amount: num(r.value) }))
@@ -106,24 +105,22 @@ function finish() {
   const cashP = payments.find(p => p.method === 'cash')
   if (cashP) cashP.amount -= change.value
   const clean = payments.filter(p => p.amount > 0)
-  const main = [...clean].sort((a, b) => b.amount - a.amount)[0]?.method ?? 'cash'
-  const payStatus: PayStatus = received.value >= total.value ? 'paid' : received.value > 0 ? 'partial' : 'unpaid'
 
-  const tx = store.addTransaction({
-    kind: 'sale', segment: 'B2C', channel: 'offline', date: now,
-    customerId: cust?.id,
+  // Ledger: barcha qatorlar qoldig'i qayta tekshiriladi (boshqa savatlar sotib yuborgan bo'lishi mumkin),
+  // qoldiq, mijoz qarzi/balansi, statistikasi va to'lovlar jurnali birgalikda yangilanadi
+  const tx = sell({
+    customerId: customer.value?.id,
     items: lines.value.map(l => ({ productId: l.productId, name: l.product.name, qty: l.qty, price: l.price })),
-    total: total.value, paid: received.value, method: main, status: 'delivered', payStatus,
-    cashier: store.role.value === 'owner' ? store.business.value.owner.split(' ')[0]! : 'Kamola',
+    total: total.value, payments: clean, debt,
+    cashier: store.role.value === 'owner' ? (store.business.value.owner.split(' ')[0] ?? 'Aziz') : 'Kamola',
     branchId: store.currentBranchId.value,
   })
-
-  if (cust) {
-    cust.debt += debt + amountOf('balance')
-    cust.totalSpent += total.value
-    cust.purchases += 1
-    cust.lastVisit = now
+  if (!tx) {
+    busy.value = false
+    notify('error')
+    return
   }
+
   pos.receipts.value[tx.id] = {
     subtotal: subtotal.value, discount: cart.value.discount, payments: clean, change: change.value,
     debt, term: debt ? term.value : undefined, dueDate: debt ? dueDate.value : undefined,

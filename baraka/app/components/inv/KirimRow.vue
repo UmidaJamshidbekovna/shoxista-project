@@ -8,11 +8,11 @@ const store = useStore()
 const { selection } = useTelegram()
 
 const p = computed(() => store.productById(props.line.productId))
-const qtyN = computed(() => invParseNum(props.line.qty))
-const costN = computed(() => invParseNum(props.line.cost))
+const qtyN = computed(() => parseNum(props.line.qty))
+const costN = computed(() => parseNum(props.line.cost))
 const qtyErr = computed(() => !(qtyN.value > 0))
 const costErr = computed(() => Number.isNaN(costN.value) || costN.value < 0)
-const sum = computed(() => (qtyErr.value || costErr.value) ? 0 : qtyN.value * costN.value)
+const sum = computed(() => (qtyErr.value || costErr.value) ? 0 : roundMoney(qtyN.value * costN.value))
 const diff = computed(() => {
   if (!p.value || costErr.value || !p.value.cost) return 0
   return Math.round(((costN.value - p.value.cost) / p.value.cost) * 100)

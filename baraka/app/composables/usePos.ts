@@ -1,5 +1,5 @@
 // POS (Sotish) holati va yordamchilari: faol savat, qatorlar, chek qo'shimchalari
-import type { Cart, DebtTerm, PayMethod, Product } from '~/data/types'
+import type { Cart, CartLine, DebtTerm, PayMethod, Product } from '~/data/types'
 
 export interface PosPayment { method: PayMethod, amount: number }
 export interface PosReceiptExtra {
@@ -12,6 +12,9 @@ export interface PosReceiptExtra {
   dueDate?: string
 }
 export interface PosDetected { productId: string, qty: number, confidence?: number, on: boolean }
+
+/** Qatorlar summasi: har bir qator (kasr kg bo'lishi mumkin) butun so'mga yaxlitlanadi */
+const linesSum = (ls: CartLine[]) => ls.reduce((s, l) => s + roundMoney(l.qty * l.price), 0)
 
 const norm = (s: string) => s.toLowerCase().replace(/[’‘`ʻʼ]/g, '\'').replace(/\s+/g, ' ').trim()
 
@@ -27,16 +30,17 @@ export function usePos() {
 
   const cart = computed<Cart>(() => carts.value.find(c => c.id === activeCartId.value) ?? carts.value[0]!)
   const lines = computed(() => cart.value.lines
-    .map(l => ({ ...l, product: store.productById(l.productId)! }))
-    .filter(l => l.product))
-  const count = computed(() => cart.value.lines.reduce((s, l) => s + l.qty, 0))
-  const subtotal = computed(() => cart.value.lines.reduce((s, l) => s + l.qty * l.price, 0))
+    .map(l => ({ ...l, product: store.productById(l.productId) }))
+    .filter((l): l is CartLine & { product: Product } => !!l.product))
+  // count/subtotal — aynan hisoblanadigan (mahsuloti mavjud) qatorlardan
+  const count = computed(() => roundQty(lines.value.reduce((s, l) => s + l.qty, 0)))
+  const subtotal = computed(() => linesSum(lines.value))
   const total = computed(() => Math.max(0, subtotal.value - cart.value.discount))
   const customer = computed(() => store.customerById(cart.value.customerId))
 
   const qtyInCart = (id: string, c: Cart = cart.value) => c.lines.find(l => l.productId === id)?.qty ?? 0
   const cartLabel = (c: Cart) => store.customerById(c.customerId)?.name.split(' ')[0] ?? c.label
-  const cartTotal = (c: Cart) => Math.max(0, c.lines.reduce((s, l) => s + l.qty * l.price, 0) - c.discount)
+  const cartTotal = (c: Cart) => Math.max(0, linesSum(c.lines.filter(l => store.productById(l.productId))) - c.discount)
 
   /** Qo'shadi; ombordagi qoldiqdan oshsa false qaytaradi */
   function add(p: Product, qty = 1): boolean {
@@ -69,6 +73,7 @@ export function usePos() {
   }
   function deleteCart(id: string) {
     const idx = carts.value.findIndex(c => c.id === id)
+    if (idx === -1) return
     carts.value.splice(idx, 1)
     if (!carts.value.length) carts.value.push(store.newCart(1))
     if (activeCartId.value === id) activeCartId.value = carts.value[Math.max(0, idx - 1)]!.id
@@ -134,13 +139,3 @@ export function usePos() {
     createCart, deleteCart, resetActive, findByCode, matchProduct, parseSpeech,
   }
 }
-
-/** +998 XX XXX XX XX formatlash */
-export function posFormatPhone(raw: string) {
-  let d = raw.replace(/\D/g, '')
-  if (d.startsWith('998')) d = d.slice(3)
-  d = d.slice(0, 9)
-  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean)
-  return `+998${parts.length ? ' ' : ''}${parts.join(' ')}`
-}
-export const posIsPhone = (s: string) => /^\+998 \d{2} \d{3} \d{2} \d{2}$/.test(s)

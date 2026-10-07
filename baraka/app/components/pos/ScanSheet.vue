@@ -9,7 +9,7 @@ const { products } = useStore()
 
 const code = ref('')
 const error = ref('')
-const added = ref<{ name: string, emoji: string, t: number }[]>([])
+const added = ref<{ name: string, emoji: string, t: string }[]>([])
 const samples = computed(() => products.value.filter(p => p.stock > 0).slice(0, 3))
 
 watch(open, (v) => { if (v) { code.value = ''; error.value = ''; added.value = [] } })
@@ -23,7 +23,7 @@ function submit(v = code.value) {
   if (!p) return (error.value = 'Bu kod bilan mahsulot topilmadi')
   if (p.stock <= 0) return (error.value = `${p.name} — omborda qolmagan`)
   emit('found', p)
-  added.value = [{ name: p.name, emoji: p.emoji, t: Date.now() }, ...added.value].slice(0, 4)
+  added.value = [{ name: p.name, emoji: p.emoji, t: uid('scan') }, ...added.value].slice(0, 4)
   code.value = ''
 }
 </script>

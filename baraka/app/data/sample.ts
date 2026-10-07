@@ -2,7 +2,7 @@
 // Do'kon: "Baraka Market · Chilonzor filiali", egasi Aziz.
 import type {
   Branch, Business, Category, ChatThread, Customer, Employee, Notification,
-  Organization, Product, SupplierListing, Transaction, Warehouse,
+  Organization, Product, Socials, SupplierListing, Transaction, Warehouse,
 } from './types'
 
 const today = new Date()
@@ -255,4 +255,23 @@ export const supplierListings: SupplierListing[] = [
 export const revenue = {
   day: { label: 'Bugun', total: 4850000, change: 12.4, points: [380, 620, 510, 880, 660, 1070, 730], labels: ['08', '10', '12', '14', '16', '18', '20'] },
   week: { label: 'Bu hafta', total: 31200000, change: 8.1, points: [3.6, 4.1, 3.4, 5.5, 4.9, 5.3, 4.4], labels: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'] },
+}
+
+/** Ijtimoiy tarmoqlar (Profile.md §7). permissions: e'lon joylash, kommentga va mijozlarga javob */
+export const socials: Socials = {
+  telegram: {
+    connected: true,
+    // DEMO — real tokens must never be in client code. Bu soxta token faqat namunaviy ekran uchun
+    // (Profil → Ijtimoiy → Telegram'da maskalangan holda ko'rsatiladi). Haqiqiy token faqat backendda saqlanadi.
+    botToken: '7712345678:AAHdemoBarakaMarketToken_AAF6qP',
+    botUsername: '@baraka_shop_bot',
+    channel: '@baraka_market',
+    adminChatId: '-1001842736510',
+    permissions: { post: true, comments: true, clients: true },
+  },
+  instagram: {
+    connected: false,
+    account: '',
+    permissions: { post: true, comments: true, clients: false },
+  },
 }

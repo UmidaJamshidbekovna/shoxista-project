@@ -9,7 +9,21 @@ export const AI_QUICK = [
   'Savdoni oshirish uchun tavsiya',
 ]
 
+/**
+ * Kutilayotgan javobdan keyin chaqiriladigan callback va uning egasi (useAiRobot chaqirgan komponent).
+ * Taymer umumiy (mini oyna va chat bitta tarixni ishlatadi), lekin callback faqat egasi tirik bo'lsa chaqiriladi.
+ */
+let pendingAnswer: { owner: symbol, cb: () => void } | null = null
+
 export function useAiRobot() {
+  const owner = Symbol('ai-robot')
+  // Komponent unmount bo'lganda uning callback'i bekor qilinadi (javobning o'zi tarixga baribir yoziladi)
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (pendingAnswer?.owner === owner) pendingAnswer = null
+    })
+  }
+
   const { chats, products } = useStore()
   /** Joriy savol va javob (a = null → yuklanmoqda) */
   const aiCur = useState<{ q: string, a: string | null } | null>('ai-cur', () => null)
@@ -41,7 +55,7 @@ export function useAiRobot() {
   }
 
   function push(from: 'me' | 'ai', text: string) {
-    thread.value?.messages.push({ id: `m${Date.now()}${Math.random().toString(36).slice(2, 6)}`, from, text, time: new Date().toISOString() })
+    thread.value?.messages.push({ id: uid('m'), from, text, time: new Date().toISOString() })
   }
 
   /** Savol yuborish oqimi (§4.2). onAnswer — chat sahifasi uchun (scroll va h.k.) */
@@ -51,12 +65,15 @@ export function useAiRobot() {
     if (timer.value) clearTimeout(timer.value)
     aiCur.value = { q, a: null }
     push('me', q)
+    pendingAnswer = onAnswer ? { owner, cb: onAnswer } : null
     timer.value = setTimeout(() => {
       const a = aiAnswer(q)
       aiCur.value = { q, a }
       push('ai', a)
       timer.value = null
-      onAnswer?.()
+      const p = pendingAnswer
+      pendingAnswer = null
+      p?.cb()
     }, AI_DELAY)
   }
 

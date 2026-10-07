@@ -1,31 +1,10 @@
-// Kontaktlar (mijoz/tashkilot) uchun yordamchilar va qo'shimcha holat
-import type { PayMethod } from '~/data/types'
+// Kontaktlar (mijoz/tashkilot) uchun yordamchilar.
+// Telefon formatlash: ~/utils/phone.ts (formatUzPhone, isUzPhone, telHref). To'lovlar: useStore().payments (yagona jurnal).
+import type { Payment, PayMethod } from '~/data/types'
 import type { Ref } from 'vue'
 
-export interface ContactPayment {
-  id: string
-  refId: string
-  amount: number
-  method: PayMethod
-  date: string
-  /** in = bizga to'landi, out = biz to'ladik */
-  dir: 'in' | 'out'
-  note?: string
-}
-
-/** Har qanday kiritilgan matnni "+998 XX XXX XX XX" ko'rinishiga keltiradi */
-export function formatUzPhone(v: string) {
-  let d = String(v ?? '').replace(/\D/g, '')
-  if (d.startsWith('998')) d = d.slice(3)
-  d = d.slice(0, 9)
-  if (!d) return ''
-  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean)
-  return `+998 ${parts.join(' ')}`
-}
-
-export const isUzPhone = (v: string) => /^\+998 \d{2} \d{3} \d{2} \d{2}$/.test(v)
-
-export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`
+/** @deprecated Yagona `Payment` turidan foydalaning (~/data/types) */
+export type ContactPayment = Payment
 
 /** Telefon inputini avtomatik formatlash */
 export function usePhoneMask(r: Ref<string>) {
@@ -45,10 +24,15 @@ export const contactPayMethods: { value: PayMethod, label: string }[] = [
 
 export const orgColors = ['#1d5bd8', '#05472a', '#c2410c', '#7c3aed', '#0891b2', '#db2777', '#b45309', '#0f766e']
 
+/**
+ * Kontakt to'lovlari — yagona jurnal (useStore().payments) ustidagi yupqa qatlam (orqaga moslik uchun).
+ * Yangi kod pul harakati uchun useLedger() dan foydalansin.
+ */
 export function useContactPayments() {
-  const payments = useState<ContactPayment[]>('contact-payments', () => [])
-  function addPayment(p: Omit<ContactPayment, 'id' | 'date'>) {
-    payments.value = [{ ...p, id: `pay${Date.now()}`, date: new Date().toISOString() }, ...payments.value]
+  const { payments } = useStore()
+  const { recordPayment } = useLedger()
+  function addPayment(p: Omit<Payment, 'id' | 'date'>) {
+    return recordPayment(p)
   }
   return { payments, addPayment }
 }

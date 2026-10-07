@@ -16,5 +16,5 @@ export function useMoney() {
     return usd.value ? amount(n) : `${formatSom(n)} so'm`
   }
 
-  return { usd, amount, money }
+  return { usd, isUsd: usd, amount, money }
 }

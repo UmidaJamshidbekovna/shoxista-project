@@ -4,6 +4,7 @@ import type { PosPayment } from '~/composables/usePos'
 
 const route = useRoute()
 const { txById, business, branchById, customerById } = useStore()
+const { amount, money, isUsd } = useMoney()
 const { receipts } = usePos()
 const { share, tg } = useTelegram()
 const { show } = useToast()
@@ -63,8 +64,8 @@ function shareReceipt() {
           </span>
           <h2 class="mt-1 text-[22px] font-extrabold">Sotuv yakunlandi</h2>
           <p class="text-[13px] font-semibold text-muted">
-            {{ formatSom(tx.total) }} so'm
-            <template v-if="extra?.change"> · Qaytim <b class="text-brand">{{ formatSom(extra.change) }} so'm</b></template>
+            {{ money(tx.total) }}
+            <template v-if="extra?.change"> · Qaytim <b class="text-brand">{{ money(extra.change) }}</b></template>
           </p>
         </div>
 
@@ -90,26 +91,26 @@ function shareReceipt() {
             <li v-for="(i, idx) in tx.items" :key="idx" class="flex items-start gap-3 text-[13px]">
               <span class="min-w-0 grow">
                 <span class="block font-bold">{{ i.name }}</span>
-                <span class="block font-semibold text-muted">{{ fmtQty(i.qty) }} × {{ formatSom(i.price) }}</span>
+                <span class="block font-semibold text-muted">{{ fmtQty(i.qty) }} × {{ amount(i.price) }}</span>
               </span>
-              <span class="shrink-0 font-extrabold">{{ formatSom(i.qty * i.price) }}</span>
+              <span class="shrink-0 font-extrabold">{{ amount(i.qty * i.price) }}</span>
             </li>
           </ul>
 
           <div class="flex flex-col gap-1.5 border-b border-dashed border-line py-3 text-[13px]">
-            <div class="flex justify-between font-semibold text-muted-2"><span>Oraliq summa</span><span>{{ formatSom(subtotal) }}</span></div>
-            <div v-if="discount" class="flex justify-between font-semibold text-brand"><span>Chegirma</span><span>−{{ formatSom(discount) }}</span></div>
+            <div class="flex justify-between font-semibold text-muted-2"><span>Oraliq summa</span><span>{{ amount(subtotal) }}</span></div>
+            <div v-if="discount" class="flex justify-between font-semibold text-brand"><span>Chegirma</span><span>−{{ amount(discount) }}</span></div>
             <div class="mt-1 flex items-end justify-between">
               <span class="text-[15px] font-extrabold">Jami</span>
-              <span class="text-[26px] leading-none font-extrabold">{{ formatSom(tx.total) }} <span class="text-sm">so'm</span></span>
+              <span class="text-[26px] leading-none font-extrabold">{{ amount(tx.total) }} <span v-if="!isUsd" class="text-sm">so'm</span></span>
             </div>
           </div>
 
           <div class="flex flex-col gap-1.5 pt-3 text-[13px]">
             <div v-for="p in payments" :key="p.method" class="flex justify-between font-semibold text-muted-2">
-              <span>{{ methodLabel[p.method] }}</span><span class="font-bold text-ink">{{ formatSom(p.amount) }}</span>
+              <span>{{ methodLabel[p.method] }}</span><span class="font-bold text-ink">{{ amount(p.amount) }}</span>
             </div>
-            <div v-if="extra?.change" class="flex justify-between font-semibold text-muted-2"><span>Qaytim</span><span class="font-bold text-ink">{{ formatSom(extra.change) }}</span></div>
+            <div v-if="extra?.change" class="flex justify-between font-semibold text-muted-2"><span>Qaytim</span><span class="font-bold text-ink">{{ amount(extra.change) }}</span></div>
             <div class="flex items-center justify-between pt-1">
               <span class="font-semibold text-muted-2">Holat</span>
               <Badge :tone="payStatusTone[tx.payStatus]">{{ payStatusLabel[tx.payStatus] }}</Badge>
@@ -119,14 +120,14 @@ function shareReceipt() {
           <div v-if="debt" class="mt-3 flex items-center gap-3 rounded-2xl bg-warn-soft px-3 py-2.5 text-warn">
             <AppIcon name="clock" :size="20" class="shrink-0" />
             <span class="grow text-xs font-bold">
-              Qarzga: {{ formatSom(debt) }} so'm
+              Qarzga: {{ money(debt) }}
               <template v-if="extra?.term"> · {{ debtTermLabel[extra.term] }}</template>
               <template v-if="extra?.dueDate"><br>To'lash muddati: {{ formatDate(extra.dueDate) }}</template>
-              <template v-if="customer && customer.debt > 0"><br>Mijozning umumiy qarzi: {{ formatSom(customer.debt) }} so'm</template>
+              <template v-if="customer && customer.debt > 0"><br>Mijozning umumiy qarzi: {{ money(customer.debt) }}</template>
             </span>
           </div>
           <div v-else-if="customer && customer.debt < 0" class="mt-3 rounded-2xl bg-soft-2 px-3 py-2.5 text-xs font-bold text-brand">
-            Mijoz balansi: {{ formatSom(-customer.debt) }} so'm
+            Mijoz balansi: {{ money(-customer.debt) }}
           </div>
 
           <p class="mt-4 text-center text-xs font-semibold text-muted">Xaridingiz uchun rahmat! · baraka.app/@{{ business.username }}</p>

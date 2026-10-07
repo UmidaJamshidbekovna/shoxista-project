@@ -6,6 +6,7 @@ const route = useRoute()
 const router = useRouter()
 const NuxtLink = resolveComponent('NuxtLink')
 const { chats, txById, customerById, orgById } = useStore()
+const { money } = useMoney()
 const { suggestions } = useChatAi()
 const { askAiQ } = useAiRobot()
 const aiPrompts = AI_QUICK
@@ -60,7 +61,7 @@ function scrollDown(smooth = true) {
   nextTick(() => scroller.value?.scrollTo({ top: scroller.value.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }))
 }
 function push(m: Omit<ChatMessage, 'id' | 'time'>) {
-  thread.value?.messages.push({ ...m, id: `m${Date.now()}${Math.random().toString(36).slice(2, 6)}`, time: new Date().toISOString() })
+  thread.value?.messages.push({ ...m, id: uid('m'), time: new Date().toISOString() })
   scrollDown()
 }
 
@@ -84,12 +85,21 @@ function send(body = text.value) {
   push({ from: 'me', text: msg })
   if (t.kind === 'support') {
     typing.value = true
-    setTimeout(() => {
+    if (supportTimer) clearTimeout(supportTimer)
+    supportTimer = setTimeout(() => {
+      supportTimer = undefined
       typing.value = false
-      push({ from: 'them', text: 'Rahmat, murojaatingiz qabul qilindi! Operatorimiz 5 daqiqa ichida javob beradi.' })
+      // Javob aynan yozilgan suhbatga tushadi (sahifa boshqa chatga o'tgan bo'lsa ham)
+      t.messages.push({ from: 'them', text: 'Rahmat, murojaatingiz qabul qilindi! Operatorimiz 5 daqiqa ichida javob beradi.', id: uid('m'), time: new Date().toISOString() })
+      if (thread.value === t) scrollDown()
     }, 1600)
   }
 }
+let supportTimer: ReturnType<typeof setTimeout> | undefined
+onBeforeUnmount(() => {
+  if (supportTimer) clearTimeout(supportTimer)
+  supportTimer = undefined
+})
 
 function applyHint(h: string) {
   selection()
@@ -157,7 +167,7 @@ onMounted(() => scrollDown(false))
     >
       <span class="flex size-8 items-center justify-center rounded-full bg-soft text-brand"><AppIcon name="cart" :size="16" /></span>
       <span class="min-w-0 grow">
-        <span class="block text-[13px] font-extrabold">{{ pinned.no }} · {{ formatSom(pinned.total) }} so'm</span>
+        <span class="block text-[13px] font-extrabold">{{ pinned.no }} · {{ money(pinned.total) }}</span>
         <span class="block text-[11px] font-semibold text-muted">Bog'langan buyurtma{{ linkedIds.length > 1 ? ` (+${linkedIds.length - 1})` : '' }}</span>
       </span>
       <Badge :tone="statusTone[pinned.status]">{{ statusLabel[pinned.status] }}</Badge>
@@ -189,7 +199,7 @@ onMounted(() => scrollDown(false))
               :class="m.from === 'me' ? 'bg-white/15 text-white' : 'bg-soft text-brand'"
             >
               <AppIcon name="link" :size="13" />
-              {{ txById(m.orderId)!.no }} · {{ formatSom(txById(m.orderId)!.total) }} so'm
+              {{ txById(m.orderId)!.no }} · {{ money(txById(m.orderId)!.total) }}
               <span class="ml-auto opacity-80">{{ statusLabel[txById(m.orderId)!.status] }}</span>
             </NuxtLink>
             <span class="mt-0.5 flex items-center justify-end gap-0.5 text-[10px] font-semibold" :class="m.from === 'me' ? 'text-white/65' : 'text-muted'">

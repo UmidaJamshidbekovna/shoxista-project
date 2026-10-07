@@ -5,6 +5,7 @@ import type { PayMethod, Product } from '~/data/types'
 const store = useStore()
 const { show } = useToast()
 const { haptic, selection, scanQr, isTelegram } = useTelegram()
+const { receiveGoods } = useLedger()
 
 const TABS = [
   { value: 'scan', label: 'Skaner' },
@@ -18,8 +19,8 @@ const queryTab = (v: unknown): KirimTab => (['scan', 'ai', 'order'] as const).fi
 const tab = ref<KirimTab>(queryTab(route.query.tab))
 watch(() => route.query.tab, (v) => { if (v) tab.value = queryTab(v) })
 
-const lineValid = (l: KirimLine) => invParseNum(l.qty) > 0 && invParseNum(l.cost) >= 0
-const lineSum = (l: KirimLine) => lineValid(l) ? invParseNum(l.qty) * invParseNum(l.cost) : 0
+const lineValid = (l: KirimLine) => parseNum(l.qty) > 0 && parseNum(l.cost) >= 0
+const lineSum = (l: KirimLine) => lineValid(l) ? roundMoney(parseNum(l.qty) * parseNum(l.cost)) : 0
 
 // ---------- Skaner ----------
 const scanLines = ref<KirimLine[]>([])
@@ -34,7 +35,7 @@ const createBarcode = ref('')
 
 function addProduct(p: Product, qty = 1) {
   const ex = scanLines.value.find(l => l.productId === p.id)
-  if (ex) ex.qty = String((invParseNum(ex.qty) || 0) + qty)
+  if (ex) ex.qty = String((parseNum(ex.qty) || 0) + qty)
   else scanLines.value = [{ productId: p.id, qty: String(qty), cost: String(p.cost) }, ...scanLines.value]
   haptic('light')
 }
@@ -208,7 +209,7 @@ const METHODS = [
   { value: 'card', label: 'Karta' },
   { value: 'transfer', label: 'O\'tkazma' },
 ]
-const paidN = computed(() => paid.value === '' ? 0 : invParseNum(paid.value))
+const paidN = computed(() => paid.value === '' ? 0 : parseNum(paid.value))
 const paidError = computed(() => Number.isNaN(paidN.value) || paidN.value < 0 ? 'Summani to\'g\'ri kiriting' : paidN.value > total.value ? 'Jami summadan oshmasin' : '')
 
 function openConfirm() {
@@ -219,26 +220,18 @@ function openConfirm() {
 
 function confirmKirim() {
   if (paidError.value || !canConfirm.value) return
-  const org = store.orgById(activeOrg.value)!
-  const items = activeLines.value.map((l) => {
-    const p = store.productById(l.productId)!
-    return { productId: p.id, name: p.name, qty: invParseNum(l.qty), price: invParseNum(l.cost) }
+  // Ledger: qoldiq (+), tannarx, ta'minotchi balansi va qabul paytidagi to'lov birgalikda yoziladi
+  const tx = receiveGoods({
+    orgId: activeOrg.value,
+    items: activeLines.value.map(l => ({ productId: l.productId, qty: parseNum(l.qty), price: parseNum(l.cost) })),
+    paid: paidN.value,
+    method: method.value,
+    cashier: store.business.value.owner.split(' ')[0] ?? 'Aziz',
+    branchId: store.currentBranchId.value,
   })
-  const t = total.value
-  const pd = paidN.value
-  store.addTransaction({
-    kind: 'purchase', segment: 'B2B', channel: 'app', date: new Date().toISOString(), orgId: org.id, items,
-    total: t, paid: pd, method: method.value, status: 'delivered',
-    payStatus: pd >= t ? 'paid' : pd > 0 ? 'partial' : 'unpaid',
-    cashier: store.business.value.owner.split(' ')[0] ?? 'Aziz', branchId: store.currentBranchId.value,
-  })
-  for (const i of items) {
-    const p = store.productById(i.productId)
-    if (p) p.cost = i.price
-  }
-  org.balance += t - pd
+  if (!tx) return
   haptic('heavy')
-  show(`Kirim qabul qilindi: ${items.length} ta mahsulot`)
+  show(`Kirim qabul qilindi: ${tx.items.length} ta mahsulot`)
   confirmOpen.value = false
   if (tab.value === 'scan') {
     scanLines.value = []
@@ -453,7 +446,7 @@ function confirmKirim() {
     <div class="flex flex-col gap-4">
       <div class="card flex flex-col gap-2 p-4 text-sm">
         <div class="flex justify-between"><span class="font-semibold text-muted">Ta'minotchi</span><span class="font-extrabold">{{ store.orgById(activeOrg)?.name }}</span></div>
-        <div class="flex justify-between"><span class="font-semibold text-muted">Mahsulotlar</span><span class="font-extrabold">{{ activeLines.length }} xil · {{ activeLines.reduce((s, l) => s + (invParseNum(l.qty) || 0), 0) }} birlik</span></div>
+        <div class="flex justify-between"><span class="font-semibold text-muted">Mahsulotlar</span><span class="font-extrabold">{{ activeLines.length }} xil · {{ activeLines.reduce((s, l) => s + (parseNum(l.qty) || 0), 0) }} birlik</span></div>
         <div class="flex justify-between border-t border-line pt-2"><span class="font-semibold text-muted">Jami</span><span class="text-lg font-extrabold">{{ formatSom(total) }} so'm</span></div>
       </div>
       <BInput v-model="paid" label="Hozir to'lanadi" inputmode="numeric" placeholder="0" suffix="so'm" :error="paidError">

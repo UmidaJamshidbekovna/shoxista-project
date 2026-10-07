@@ -57,7 +57,7 @@ function save() {
     name: d.name.trim(),
     activity: d.activity.trim(),
     owner: d.owner.trim(),
-    phone: d.phone.trim() ? profFormatPhone(d.phone) : '',
+    phone: d.phone.trim() ? formatUzPhone(d.phone, { completeOnly: true }) : '',
     inn: d.inn.trim(),
     description: d.description.trim(),
   }

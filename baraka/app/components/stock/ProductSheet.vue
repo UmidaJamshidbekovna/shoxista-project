@@ -11,6 +11,7 @@ const emit = defineEmits<{ saved: [p: Product] }>()
 const store = useStore()
 const { show } = useToast()
 const { haptic, selection } = useTelegram()
+const inv = useInv()
 
 const isEdit = computed(() => !!props.product)
 const cats = computed(() => [...store.categories.value].sort((a, b) => a.order - b.order))
@@ -39,11 +40,11 @@ watch(open, (v) => {
 const errors = computed(() => {
   const e: Record<string, string> = {}
   if (!form.name.trim()) e.name = 'Mahsulot nomini kiriting'
-  const price = stockParseNum(form.price)
+  const price = parseNum(form.price)
   if (!(price > 0)) e.price = 'Narxni kiriting (0 dan katta)'
-  const st = stockParseNum(form.stock)
+  const st = parseNum(form.stock)
   if (form.stock !== '' && (Number.isNaN(st) || st < 0)) e.stock = 'Qoldiq 0 yoki undan katta'
-  const ms = stockParseNum(form.minStock)
+  const ms = parseNum(form.minStock)
   if (form.minStock !== '' && (Number.isNaN(ms) || ms < 0)) e.minStock = 'Minimal qoldiq 0 yoki undan katta'
   return e
 })
@@ -85,28 +86,31 @@ function save() {
     haptic('light')
     return
   }
-  const price = stockParseNum(form.price)
+  const price = parseNum(form.price)
   const data = {
     name: form.name.trim(),
     categoryId: form.categoryId,
     unit: form.unit,
     supplierId: form.supplierId || undefined,
     price,
-    stock: form.stock === '' ? 0 : stockParseNum(form.stock),
-    minStock: form.minStock === '' ? 0 : stockParseNum(form.minStock),
+    stock: form.stock === '' ? 0 : parseNum(form.stock),
+    minStock: form.minStock === '' ? 0 : parseNum(form.minStock),
     description: form.description.trim(),
     images: [...form.images],
     image: undefined,
   }
   let saved: Product
   if (props.product) {
-    Object.assign(props.product, data)
+    // Qoldiq o'zgarishi inventarizatsiya sifatida ledger orqali (tuzatishlar jurnaliga yoziladi)
+    const { stock, ...rest } = data
+    Object.assign(props.product, rest)
+    if (stock !== props.product.stock) inv.adjust(props.product, 'count', stock, 'Mahsulot tahrirlandi')
     saved = props.product
     show('Mahsulot saqlandi')
   }
   else {
     saved = {
-      id: `p${Date.now()}`, sku: autoSku(data.name), barcode: props.barcode || genBarcode(), cost: Math.round(price * 0.8),
+      id: uid('p'), sku: autoSku(data.name), barcode: props.barcode || genBarcode(), cost: Math.round(price * 0.8),
       warehouseId: store.warehouses.value[0]?.id ?? 'w1', emoji: '📦',
       tint: PRODUCT_TINTS[store.products.value.length % PRODUCT_TINTS.length], rating: 0, reviews: [],
       ...data,

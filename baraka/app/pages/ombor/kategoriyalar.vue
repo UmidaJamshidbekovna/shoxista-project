@@ -100,7 +100,7 @@ function save() {
   }
   else {
     const order = Math.max(0, ...store.categories.value.map(c => c.order)) + 1
-    store.categories.value = [...store.categories.value, { id: `c${Date.now()}`, name: name.value.trim(), color: color.value, order }]
+    store.categories.value = [...store.categories.value, { id: uid('c'), name: name.value.trim(), color: color.value, order }]
     show('Kategoriya qo\'shildi')
   }
   haptic('medium')

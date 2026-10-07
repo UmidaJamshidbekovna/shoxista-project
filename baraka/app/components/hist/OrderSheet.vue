@@ -7,7 +7,9 @@ import { channelIcon, methodLabel, statusLabel } from '~/data/labels'
 const props = defineProps<{ txId?: string }>()
 const open = defineModel<boolean>({ default: false })
 
-const { txById, customerById, orgById, productById, chats } = useStore()
+const { txById, productById, chats } = useStore()
+const { amount, money } = useMoney()
+const { cancelOrder, returnOrder, describeReversal } = useLedger()
 const party = useTxParty()
 const { show } = useToast()
 const { haptic } = useTelegram()
@@ -43,8 +45,8 @@ const secondary = computed<'cancel' | 'return' | undefined>(() => {
 
 const TINTS = ['#fde8e8', '#e8f0fb', '#e7f7ec', '#fff4e0', '#f1ebfe', '#e6f5fc', '#fdeaf2']
 function tintOf(productId: string, label: string) {
-  const p = productById(productId) as any
-  if (p?.tint) return p.tint as string
+  const p = productById(productId)
+  if (p?.tint) return p.tint
   let h = 0
   for (const c of productId || label) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return TINTS[h % TINTS.length]
@@ -72,28 +74,18 @@ function ask() {
   haptic('light')
   confirmOpen.value = true
 }
+/** Tasdiqlash matni: qoldiq, qarz va to'langan summa bilan nima bo'lishi (ledger qoidalari bo'yicha) */
+const reversalText = computed(() => tx.value ? describeReversal(tx.value) : '')
 function confirmAction() {
   const t = tx.value
   const mode = secondary.value
   if (!t || !mode) return
-  // Qoldiqni tiklash: sotuvda omborga qaytadi, xaridda ombordan chiqadi
-  for (const i of t.items) {
-    const p = productById(i.productId)
-    if (p) p.stock = Math.max(0, p.stock + (t.kind === 'sale' ? i.qty : -i.qty))
-  }
-  // To'lanmagan qoldiq qarzdan olib tashlanadi
-  const rem = remaining.value
-  if (rem) {
-    const c = customerById(t.customerId)
-    const o = orgById(t.orgId)
-    if (t.kind === 'sale' && c) c.debt -= rem
-    else if (t.kind === 'sale' && o) o.balance += rem
-    else if (t.kind === 'purchase' && o) o.balance -= rem
-  }
-  t.status = mode === 'cancel' ? 'cancelled' : 'returned'
+  const restock = t.kind === 'sale' && !!t.stockApplied
+  const ok = mode === 'cancel' ? cancelOrder(t) : returnOrder(t)
   confirmOpen.value = false
+  if (!ok) return
   haptic('medium')
-  show(mode === 'cancel' ? 'Buyurtma bekor qilindi' : 'Buyurtma qaytarildi, qoldiq tiklandi')
+  show(mode === 'cancel' ? 'Buyurtma bekor qilindi' : restock ? 'Buyurtma qaytarildi, qoldiq tiklandi' : 'Buyurtma qaytarildi')
 }
 </script>
 
@@ -152,9 +144,9 @@ function confirmAction() {
           >{{ histInitials(i.name) }}</span>
           <span class="min-w-0 grow">
             <span class="block truncate text-[14px] font-bold text-ink">{{ i.name }}</span>
-            <span class="block text-[12px] font-medium text-muted">{{ i.qty }} × {{ formatSom(i.price) }}</span>
+            <span class="block text-[12px] font-medium text-muted">{{ i.qty }} × {{ amount(i.price) }}</span>
           </span>
-          <span class="shrink-0 text-[14px] font-extrabold whitespace-nowrap text-ink">{{ formatSom(i.qty * i.price) }}</span>
+          <span class="shrink-0 text-[14px] font-extrabold whitespace-nowrap text-ink">{{ amount(i.qty * i.price) }}</span>
         </div>
       </div>
 
@@ -163,7 +155,7 @@ function confirmAction() {
         <div class="flex items-center justify-between text-[13px]">
           <span class="font-semibold text-muted">To'lov holati</span>
           <span class="font-extrabold" :style="{ color: pay.c }">
-            {{ pay.label }}<template v-if="tx.payStatus === 'partial'"> · {{ formatSom(remaining) }} qoldi</template>
+            {{ pay.label }}<template v-if="tx.payStatus === 'partial'"> · {{ amount(remaining) }} qoldi</template>
           </span>
         </div>
         <div class="flex items-center justify-between">
@@ -171,7 +163,7 @@ function confirmAction() {
           <span
             class="text-[17px] font-extrabold"
             :class="tx.status === 'cancelled' || tx.status === 'returned' ? 'text-[#a3a8b0] line-through' : 'text-ink'"
-          >{{ formatSom(tx.total) }} so'm</span>
+          >{{ money(tx.total) }}</span>
         </div>
       </div>
     </template>
@@ -212,7 +204,7 @@ function confirmAction() {
       </span>
       <h2 class="mt-2 text-[19px] font-extrabold">{{ secondary === 'return' ? 'Buyurtmani qaytarish?' : 'Buyurtmani bekor qilish?' }}</h2>
       <p class="text-[13px] font-medium text-muted">
-        #{{ tx.no }} · {{ formatSom(tx.total) }} so'm. Mahsulotlar {{ isSale ? 'omborga qaytariladi' : 'ombordan chiqariladi' }}<template v-if="remaining">, {{ formatSom(remaining) }} so'm qarz yopiladi</template>.
+        #{{ tx.no }} · {{ money(tx.total) }}. {{ reversalText }}
       </p>
     </div>
     <template #footer>

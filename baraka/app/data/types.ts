@@ -89,6 +89,31 @@ export interface Transaction {
   payStatus: PayStatus
   cashier: string
   branchId: string
+  /**
+   * Qoldiq shu tranzaksiya bilan haqiqatan o'zgartirilganmi (useLedger / addTransaction orqali yaratilganda `true`).
+   * Namunaviy (seed) tranzaksiyalarda yo'q — bekor qilinganda qoldiq tiklanmaydi.
+   */
+  stockApplied?: boolean
+  /** Mijoz balansidan yechilgan qism (`paid` ichida). Yo'q bo'lsa: method === 'balance' → butun `paid` */
+  balancePaid?: number
+}
+
+/**
+ * Yagona to'lovlar jurnali (useStore().payments): qarz to'lovi, balansni to'ldirish, ta'minotchiga to'lov,
+ * kirimda to'langan summa, sotuv to'lovlari va qaytarishlar shu yerga yoziladi.
+ */
+export interface Payment {
+  id: string
+  /** Customer.id yoki Organization.id (umumiy mijozda bo'sh) */
+  refId?: string
+  amount: number
+  method: PayMethod
+  date: string // ISO
+  /** in = bizga to'landi, out = biz to'ladik / qaytardik */
+  dir: 'in' | 'out'
+  note?: string
+  /** Tranzaksiyaga bog'langan to'lov (sotuv, kirim, qaytarish). Qo'lda kiritilgan to'lovlarda yo'q */
+  txId?: string
 }
 
 export interface WorkDay { day: string, open: string, close: string, off: boolean }
@@ -177,3 +202,19 @@ export interface Business {
 }
 
 export type Plan = 'Start' | 'Pro' | 'Biznes'
+
+export interface Socials {
+  telegram: {
+    connected: boolean
+    botToken: string
+    botUsername: string
+    channel: string
+    adminChatId: string
+    permissions: { post: boolean, comments: boolean, clients: boolean }
+  }
+  instagram: {
+    connected: boolean
+    account: string
+    permissions: { post: boolean, comments: boolean, clients: boolean }
+  }
+}

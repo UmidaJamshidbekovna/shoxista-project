@@ -15,7 +15,20 @@ const typed = ref('')
 const items = ref<PosDetected[]>([])
 const unknown = ref<string[]>([])
 const real = ref(false)
-let rec: any
+/** Web Speech API'ning bizga kerakli qismi (TS lib'da standart tur yo'q) */
+interface SpeechResultEvent { results: ArrayLike<ArrayLike<{ transcript: string }>> }
+interface SpeechRec {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  onresult: ((e: SpeechResultEvent) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+  start: () => void
+  abort?: () => void
+}
+type SpeechRecCtor = new () => SpeechRec
+let rec: SpeechRec | undefined
 let timer: ReturnType<typeof setTimeout> | undefined
 
 watch(open, (v) => {
@@ -32,20 +45,22 @@ function start() {
   reset()
   haptic('medium')
   stage.value = 'listening'
-  const SR = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+  const w = window as Window & { webkitSpeechRecognition?: SpeechRecCtor, SpeechRecognition?: SpeechRecCtor }
+  const SR = w.webkitSpeechRecognition || w.SpeechRecognition
   real.value = !!SR
   if (SR) {
     try {
-      rec = new SR()
-      rec.lang = 'uz-UZ'
-      rec.interimResults = true
-      rec.continuous = false
-      rec.onresult = (e: any) => {
-        transcript.value = Array.from(e.results as ArrayLike<any>).map((r: any) => r[0].transcript).join(' ')
+      const r = new SR()
+      rec = r
+      r.lang = 'uz-UZ'
+      r.interimResults = true
+      r.continuous = false
+      r.onresult = (e) => {
+        transcript.value = Array.from(e.results).map(x => x[0]?.transcript ?? '').join(' ')
       }
-      rec.onerror = () => { if (!transcript.value) simulate() }
-      rec.onend = () => { if (transcript.value) finish(transcript.value) }
-      rec.start()
+      r.onerror = () => { if (!transcript.value) simulate() }
+      r.onend = () => { if (transcript.value) finish(transcript.value) }
+      r.start()
       return
     }
     catch { real.value = false }

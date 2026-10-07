@@ -1,6 +1,6 @@
 // Profil bo'limi uchun umumiy yordamchilar (Profile.md)
 import type { Branch, Employee, Plan } from '~/data/types'
-import { planLimits, roleLabel } from '~/data/labels'
+import { roleLabel } from '~/data/labels'
 
 /** Tariflar (Profile.md §9) */
 export const profPlans: { id: Plan, price: number, features: string[] }[] = [
@@ -18,23 +18,6 @@ export function profPlanPrice(id: Plan) {
 /** Limit matni: Infinity → "Cheksiz" */
 export function profLimit(n: number) {
   return Number.isFinite(n) ? formatSom(n) : 'Cheksiz'
-}
-
-export function profPlanLimits(id: Plan) {
-  return planLimits[id]
-}
-
-/** Telefonda kamida 9 ta raqam (Profile.md §2, §6) */
-export function profPhoneValid(v: string) {
-  return v.replace(/\D/g, '').length >= 9
-}
-
-/** Kiritilgan raqamni "+998 90 123 45 67" ko'rinishiga keltirish */
-export function profFormatPhone(v: string) {
-  let d = v.replace(/\D/g, '')
-  if (d.length === 9) d = `998${d}`
-  if (!/^998\d{9}$/.test(d)) return v.trim()
-  return `+${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10, 12)}`
 }
 
 const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr']
@@ -100,8 +83,4 @@ export function useProfMe() {
     ? employees.value.find(e => e.role === 'owner')
     : employees.value.find(e => e.role === 'cashier') ?? employees.value.find(e => e.role !== 'owner'))
   return { me }
-}
-
-export function useProfHelpers() {
-  return { profPlans, profPhoneValid, profFormatPhone }
 }

@@ -147,7 +147,3 @@ export function encodeQr(text: string): boolean[][] | null {
   applyMask(best); drawFormat(best)
   return mod
 }
-
-export function useProfQr() {
-  return { encodeQr }
-}

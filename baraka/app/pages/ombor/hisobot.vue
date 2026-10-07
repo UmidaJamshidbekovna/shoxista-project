@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { Channel, PayMethod, Transaction } from '~/data/types'
 import { channelIcon, channelLabel, methodLabel } from '~/data/labels'
+import type { IconName } from '~/components/AppIcon.vue'
 
 const store = useStore()
+const { amount, money, isUsd } = useMoney()
 const { show } = useToast()
 const { haptic } = useTelegram()
 
@@ -141,7 +143,7 @@ function printPdf() {
     <div class="relative overflow-hidden rounded-[24px] bg-brand p-5 text-white shadow-float">
       <div class="absolute -top-12 -right-10 size-40 rounded-full bg-white/8" />
       <p class="text-[13px] font-bold text-white/70">Tushum</p>
-      <p class="mt-1 text-[30px] leading-tight font-extrabold tracking-tight">{{ formatSom(kpi.revenue) }} <span class="text-base font-bold text-white/70">so'm</span></p>
+      <p class="mt-1 text-[30px] leading-tight font-extrabold tracking-tight">{{ amount(kpi.revenue) }} <span v-if="!isUsd" class="text-base font-bold text-white/70">so'm</span></p>
       <div class="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold">
         <span v-if="kpi.change !== null" class="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1">
           <AppIcon :name="kpi.change >= 0 ? 'arrow-up' : 'arrow-down'" :size="12" :stroke="3" />{{ Math.abs(kpi.change) }}%
@@ -153,7 +155,7 @@ function printPdf() {
     <div class="grid grid-cols-2 gap-2.5">
       <div class="card p-3.5">
         <p class="flex items-center gap-1.5 text-xs font-bold text-muted"><AppIcon name="trend" :size="14" class="text-brand" />Foyda</p>
-        <p class="mt-1 text-lg font-extrabold">{{ formatSom(kpi.profit) }}</p>
+        <p class="mt-1 text-lg font-extrabold">{{ amount(kpi.profit) }}</p>
         <p class="text-[11px] font-semibold text-muted">marja {{ kpi.margin }}%</p>
       </div>
       <div class="card p-3.5">
@@ -163,12 +165,12 @@ function printPdf() {
       </div>
       <div class="card p-3.5">
         <p class="flex items-center gap-1.5 text-xs font-bold text-muted"><AppIcon name="cart" :size="14" class="text-brand" />O'rtacha chek</p>
-        <p class="mt-1 text-lg font-extrabold">{{ formatSom(kpi.avg) }}</p>
+        <p class="mt-1 text-lg font-extrabold">{{ amount(kpi.avg) }}</p>
         <p class="text-[11px] font-semibold text-muted">so'm</p>
       </div>
       <div class="card p-3.5">
         <p class="flex items-center gap-1.5 text-xs font-bold text-muted"><AppIcon name="truck" :size="14" class="text-brand" />Kirim (xarid)</p>
-        <p class="mt-1 text-lg font-extrabold">{{ formatSom(kpi.purchases) }}</p>
+        <p class="mt-1 text-lg font-extrabold">{{ amount(kpi.purchases) }}</p>
         <p class="text-[11px] font-semibold text-muted">so'm</p>
       </div>
     </div>
@@ -178,9 +180,9 @@ function printPdf() {
       <div class="card flex flex-col gap-3.5 p-4">
         <div v-for="c in byChannel" :key="c.key" class="flex flex-col gap-1.5" :title="`${channelLabel[c.key]}: ${formatSom(c.sum)} so'm, ${c.n} ta chek`">
           <div class="flex items-center gap-2 text-[13px]">
-            <span class="flex size-7 items-center justify-center rounded-full bg-soft text-brand"><AppIcon :name="channelIcon[c.key] as any" :size="14" /></span>
+            <span class="flex size-7 items-center justify-center rounded-full bg-soft text-brand"><AppIcon :name="channelIcon[c.key] as IconName" :size="14" /></span>
             <span class="grow font-bold">{{ channelLabel[c.key] }}</span>
-            <span class="font-extrabold">{{ formatSom(c.sum) }}</span>
+            <span class="font-extrabold">{{ amount(c.sum) }}</span>
             <span class="w-9 text-right text-xs font-bold text-muted">{{ c.share }}%</span>
           </div>
           <div class="h-2 overflow-hidden rounded-full bg-field">
@@ -233,7 +235,7 @@ function printPdf() {
             <span class="block truncate text-sm font-bold">{{ p.name }}</span>
             <span class="block text-xs font-semibold text-muted">{{ p.qty }} {{ store.productById(p.id)?.unit ?? 'dona' }} sotildi</span>
           </span>
-          <span class="shrink-0 text-sm font-extrabold">{{ formatSom(p.sum) }}</span>
+          <span class="shrink-0 text-sm font-extrabold">{{ amount(p.sum) }}</span>
         </NuxtLink>
       </div>
     </template>
@@ -249,27 +251,27 @@ function printPdf() {
       <p class="meta">Davr: {{ rangeLabel }} · Tayyorlandi: {{ formatDate(new Date().toISOString()) }} {{ formatTime(new Date().toISOString()) }}</p>
       <table>
         <tbody>
-          <tr><td>Tushum</td><td>{{ formatSom(kpi.revenue) }} so'm</td></tr>
-          <tr><td>Foyda</td><td>{{ formatSom(kpi.profit) }} so'm ({{ kpi.margin }}%)</td></tr>
+          <tr><td>Tushum</td><td>{{ money(kpi.revenue) }}</td></tr>
+          <tr><td>Foyda</td><td>{{ money(kpi.profit) }} ({{ kpi.margin }}%)</td></tr>
           <tr><td>Cheklar soni</td><td>{{ kpi.count }}</td></tr>
-          <tr><td>O'rtacha chek</td><td>{{ formatSom(kpi.avg) }} so'm</td></tr>
-          <tr><td>Kirim (xarid)</td><td>{{ formatSom(kpi.purchases) }} so'm</td></tr>
+          <tr><td>O'rtacha chek</td><td>{{ money(kpi.avg) }}</td></tr>
+          <tr><td>Kirim (xarid)</td><td>{{ money(kpi.purchases) }}</td></tr>
         </tbody>
       </table>
       <h2>Savdo kanallari</h2>
       <table>
         <thead><tr><th>Kanal</th><th>Cheklar</th><th>Summa</th><th>Ulush</th></tr></thead>
-        <tbody><tr v-for="c in byChannel" :key="c.key"><td>{{ channelLabel[c.key] }}</td><td>{{ c.n }}</td><td>{{ formatSom(c.sum) }}</td><td>{{ c.share }}%</td></tr></tbody>
+        <tbody><tr v-for="c in byChannel" :key="c.key"><td>{{ channelLabel[c.key] }}</td><td>{{ c.n }}</td><td>{{ amount(c.sum) }}</td><td>{{ c.share }}%</td></tr></tbody>
       </table>
       <h2>To'lov turlari</h2>
       <table>
         <thead><tr><th>Usul</th><th>Summa</th><th>Ulush</th></tr></thead>
-        <tbody><tr v-for="m in byMethod" :key="m.key"><td>{{ methodLabel[m.key] }}</td><td>{{ formatSom(m.sum) }}</td><td>{{ Math.round(m.pct) }}%</td></tr></tbody>
+        <tbody><tr v-for="m in byMethod" :key="m.key"><td>{{ methodLabel[m.key] }}</td><td>{{ amount(m.sum) }}</td><td>{{ Math.round(m.pct) }}%</td></tr></tbody>
       </table>
       <h2>Top mahsulotlar</h2>
       <table>
         <thead><tr><th>#</th><th>Mahsulot</th><th>Miqdor</th><th>Summa</th></tr></thead>
-        <tbody><tr v-for="(p, i) in topProducts" :key="p.id"><td>{{ i + 1 }}</td><td>{{ p.name }}</td><td>{{ p.qty }}</td><td>{{ formatSom(p.sum) }}</td></tr></tbody>
+        <tbody><tr v-for="(p, i) in topProducts" :key="p.id"><td>{{ i + 1 }}</td><td>{{ p.name }}</td><td>{{ p.qty }}</td><td>{{ amount(p.sum) }}</td></tr></tbody>
       </table>
       <p class="meta">Qaytarilgan va bekor qilingan buyurtmalar jamiga kiritilmagan.</p>
     </div>

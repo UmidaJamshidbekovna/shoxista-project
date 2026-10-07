@@ -5,8 +5,9 @@ import type { IconName } from '~/components/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { customers, transactions, chats, customerById } = useStore()
-const { payments, addPayment } = useContactPayments()
+const { transactions, payments, chats, customerById } = useStore()
+const { amount, isUsd } = useMoney()
+const { receivePayment, deleteCustomer, customerDeleteBlock } = useLedger()
 const { show } = useToast()
 const { selection } = useTelegram()
 const toneText = { brand: 'text-brand', warn: 'text-warn', danger: 'text-danger' } as const
@@ -18,7 +19,8 @@ const thread = computed(() => chats.value.find(t => t.refId === id.value))
 const txs = computed(() => transactions.value
   .filter(t => t.customerId === id.value)
   .sort((a, b) => b.date.localeCompare(a.date)))
-const myPayments = computed(() => payments.value.filter(p => p.refId === id.value))
+// Qo'lda qabul qilingan to'lovlar (qarz to'lovi / balansga qo'shish). Sotuv va qaytarish yozuvlari (txId) — Xaridlar'da
+const myPayments = computed(() => payments.value.filter(p => p.refId === id.value && !p.txId))
 const avg = computed(() => c.value && c.value.purchases ? Math.round(c.value.totalSpent / c.value.purchases) : 0)
 
 const payOpen = ref(false)
@@ -29,15 +31,11 @@ const noteOpen = ref(false)
 const noteDraft = ref('')
 
 function receive(amount: number, method: PayMethod) {
-  if (!c.value) return
-  c.value.debt -= amount
-  addPayment({ refId: id.value, amount, method, dir: 'in', note: 'Qarz to\'lovi' })
+  if (!c.value || !receivePayment(id.value, amount, method, 'debt')) return
   show(c.value.debt > 0 ? `To'lov qabul qilindi. Qoldiq qarz: ${formatSom(c.value.debt)} so'm` : 'Qarz to\'liq yopildi')
 }
 function topup(amount: number, method: PayMethod) {
-  if (!c.value) return
-  c.value.debt -= amount
-  addPayment({ refId: id.value, amount, method, dir: 'in', note: 'Balansga qo\'shildi' })
+  if (!c.value || !receivePayment(id.value, amount, method, 'topup')) return
   show(`Balansga ${formatSom(amount)} so'm qo'shildi`)
 }
 function openNote() {
@@ -50,9 +48,15 @@ function saveNote() {
   noteOpen.value = false
   show('Izoh saqlandi')
 }
+/** Qarz/balans yoki xaridlar bo'lsa o'chirish bloklanadi (pul va tarix yo'qolmasligi uchun) */
+function askRemove() {
+  const block = customerDeleteBlock(id.value)
+  if (block) return show(block, 'error')
+  delOpen.value = true
+}
 function remove() {
   const name = c.value?.name
-  customers.value = customers.value.filter(x => x.id !== id.value)
+  if (!deleteCustomer(id.value)) return
   show(`${name} o'chirildi`)
   router.replace('/mijozlar')
 }
@@ -63,7 +67,7 @@ function remove() {
     <PageHeader :title="c ? 'Mijoz' : 'Topilmadi'" back="/mijozlar">
       <template v-if="c">
         <RoundButton icon="edit" label="Tahrirlash" @click="editOpen = true" />
-        <RoundButton icon="trash" label="O'chirish" @click="delOpen = true" />
+        <RoundButton icon="trash" label="O'chirish" @click="askRemove" />
       </template>
     </PageHeader>
 
@@ -94,8 +98,8 @@ function remove() {
       <section class="grid grid-cols-3 gap-2.5">
         <div class="card flex flex-col gap-0.5 p-3">
           <span class="text-[11px] font-bold text-muted">Jami xarid</span>
-          <span class="text-[15px] leading-tight font-extrabold">{{ formatSom(c.totalSpent) }}</span>
-          <span class="text-[10px] font-semibold text-muted">so'm</span>
+          <span class="text-[15px] leading-tight font-extrabold">{{ amount(c.totalSpent) }}</span>
+          <span v-if="!isUsd" class="text-[10px] font-semibold text-muted">so'm</span>
         </div>
         <div class="card flex flex-col gap-0.5 p-3">
           <span class="text-[11px] font-bold text-muted">Xaridlar soni</span>
@@ -104,8 +108,8 @@ function remove() {
         </div>
         <div class="card flex flex-col gap-0.5 p-3">
           <span class="text-[11px] font-bold text-muted">O'rtacha chek</span>
-          <span class="text-[15px] leading-tight font-extrabold">{{ formatSom(avg) }}</span>
-          <span class="text-[10px] font-semibold text-muted">so'm</span>
+          <span class="text-[15px] leading-tight font-extrabold">{{ amount(avg) }}</span>
+          <span v-if="!isUsd" class="text-[10px] font-semibold text-muted">so'm</span>
         </div>
       </section>
 
@@ -119,7 +123,7 @@ function remove() {
           {{ c.debt > 0 ? 'Mijoz qarzi' : c.debt < 0 ? 'Mijoz balansi (oldindan to\'lov)' : 'Hisob holati' }}
         </p>
         <p class="mt-1 text-[30px] leading-tight font-extrabold">
-          {{ formatSom(Math.abs(c.debt)) }} <span class="text-base font-bold text-white/80">so'm</span>
+          {{ amount(Math.abs(c.debt)) }} <span v-if="!isUsd" class="text-base font-bold text-white/80">so'm</span>
         </p>
         <p class="text-xs font-medium text-white/70">
           {{ c.debt > 0 ? 'Mijoz sizga qarzdor' : c.debt < 0 ? 'Keyingi xaridlarda balansdan yechiladi' : 'Qarz ham, balans ham yo\'q' }}
@@ -157,7 +161,7 @@ function remove() {
               <p class="text-sm font-bold">{{ p.note }}</p>
               <p class="text-xs font-medium text-muted">{{ formatDay(p.date) }}, {{ formatTime(p.date) }} · {{ methodLabel[p.method] }}</p>
             </div>
-            <span class="text-sm font-extrabold text-brand">+{{ formatSom(p.amount) }}</span>
+            <span class="text-sm font-extrabold text-brand">+{{ amount(p.amount) }}</span>
           </div>
         </div>
       </section>
@@ -173,7 +177,7 @@ function remove() {
               <p class="truncate text-xs font-medium text-muted">{{ formatDay(t.date) }}, {{ formatTime(t.date) }} · {{ t.items.length }} ta mahsulot</p>
             </div>
             <div class="shrink-0 text-right">
-              <p class="text-sm font-extrabold" :class="(t.status === 'returned' || t.status === 'cancelled') && 'text-muted line-through'">{{ formatSom(t.total) }}</p>
+              <p class="text-sm font-extrabold" :class="(t.status === 'returned' || t.status === 'cancelled') && 'text-muted line-through'">{{ amount(t.total) }}</p>
               <p class="text-[11px] font-bold" :class="toneText[payStatusTone[t.payStatus]]">{{ payStatusLabel[t.payStatus] }}</p>
             </div>
           </NuxtLink>

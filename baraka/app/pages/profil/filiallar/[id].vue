@@ -6,6 +6,7 @@ const route = useRoute()
 const router = useRouter()
 const { branches, warehouses } = useStore()
 const { show } = useToast()
+const { deleteBranch, deleteWarehouse } = useLedger()
 
 const id = computed(() => String(route.params.id))
 const isNew = computed(() => id.value === 'new')
@@ -80,14 +81,14 @@ function save() {
     // Asosiy filial doim bitta
     let list = f.main ? branches.value.map(b => ({ ...b, main: false })) : [...branches.value]
     if (existingBranch.value) list = list.map(b => b.id === id.value ? { ...b, ...data } : b)
-    else list = [...list, { ...data, id: `b${Date.now()}`, phone: '' }]
+    else list = [...list, { ...data, id: uid('b'), phone: '' }]
     if (!list.some(b => b.main) && list[0]) list[0].main = true
     branches.value = list
   }
   else {
     const data: Omit<Warehouse, 'id' | 'branchId'> = { name: f.name.trim(), address: f.address.trim(), manager: f.manager.trim(), lat: f.lat ? lat : undefined, lng: f.lng ? lng : undefined }
     if (existingWh.value) warehouses.value = warehouses.value.map(w => w.id === id.value ? { ...w, ...data } : w)
-    else warehouses.value = [...warehouses.value, { ...data, id: `w${Date.now()}`, branchId: branches.value.find(b => b.main)?.id ?? branches.value[0]?.id ?? '' }]
+    else warehouses.value = [...warehouses.value, { ...data, id: uid('w'), branchId: branches.value.find(b => b.main)?.id ?? branches.value[0]?.id ?? '' }]
   }
   show(isNew.value ? (isBranch.value ? 'Filial qo\'shildi' : 'Ombor qo\'shildi') : 'Saqlandi')
   leave()
@@ -95,8 +96,9 @@ function save() {
 
 const canDelete = computed(() => !isNew.value && !(existingBranch.value?.main))
 function remove() {
-  if (existingBranch.value) branches.value = branches.value.filter(b => b.id !== id.value)
-  else warehouses.value = warehouses.value.filter(w => w.id !== id.value)
+  // Ledger: joriy filial almashtiriladi, omborlar/xodimlar/mahsulotlar boshqa filial/omborga o'tkaziladi
+  const ok = existingBranch.value ? deleteBranch(id.value) : deleteWarehouse(id.value)
+  if (!ok) return
   show(isBranch.value ? 'Filial o\'chirildi' : 'Ombor o\'chirildi')
   leave()
 }

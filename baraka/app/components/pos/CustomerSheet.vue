@@ -18,7 +18,7 @@ watch(open, (v) => {
   if (v) { mode.value = 'list'; q.value = ''; name.value = ''; phone.value = '+998 '; touched.value = false }
 })
 watch(phone, (v) => {
-  const f = posFormatPhone(v)
+  const f = formatUzPhone(v, { keepPrefix: true })
   if (f !== v) phone.value = f
 })
 
@@ -38,7 +38,7 @@ const nameError = computed(() => {
   return ''
 })
 const phoneError = computed(() => {
-  if (!posIsPhone(phone.value)) return 'Format: +998 90 123 45 67'
+  if (!isUzPhone(phone.value)) return 'Format: +998 90 123 45 67'
   if (customers.value.some(c => c.phone === phone.value)) return 'Bu raqam bilan mijoz allaqachon bor'
   return ''
 })
@@ -51,14 +51,14 @@ function pick(c: Customer) {
 function startCreate() {
   mode.value = 'create'
   const s = q.value.trim()
-  if (s && /\d/.test(s)) phone.value = posFormatPhone(s)
+  if (s && /\d/.test(s)) phone.value = formatUzPhone(s, { keepPrefix: true })
   else if (s) name.value = s.replace(/\b\w/g, m => m.toUpperCase())
 }
 function create() {
   touched.value = true
   if (!valid.value) return
   const c: Customer = {
-    id: `u${Date.now()}`, name: name.value.trim(), phone: phone.value, debt: 0, totalSpent: 0, purchases: 0,
+    id: uid('u'), name: name.value.trim(), phone: phone.value, debt: 0, totalSpent: 0, purchases: 0,
     lastVisit: new Date().toISOString(), channel: 'offline',
   }
   customers.value = [c, ...customers.value]

@@ -47,6 +47,16 @@ app/
   middleware/onboarding.global.ts
 ```
 
+## Arxitektura
+
+Uch qatlam — har birining vazifasi bitta:
+
+- **`composables/useStore.ts` — holat (state).** Barcha kolleksiyalar (`products`, `customers`, `transactions`, `payments`, ...) `useState` da. Faqat o'qish yordamchilari (`productById`, `lowStock`, `receivable`, ...) va past darajali `addTransaction` (qoldiqni 0 dan pastga tushirmaydi). Sahifalar pul yoki qoldiqni bu yerda to'g'ridan-to'g'ri o'zgartirmaydi.
+- **`composables/useLedger.ts` — biznes qoidalari.** Pul va qoldiqqa ta'sir qiluvchi har bir amal: `sell` (POS; checkout paytida barcha qatorlar qoldig'i qayta tekshiriladi), `cancelOrder` / `returnOrder` (qoldiq faqat `stockApplied` bo'lsa tiklanadi; qarz, balans, statistika qaytariladi), `receiveGoods` (kirim), `receivePayment` / `paySupplier` / `receiveFromOrg`, `adjustStock`, o'chirish himoyalari (`deleteCustomer`, `deleteOrg`, `deleteBranch`, `deleteWarehouse`). Har bir amal qoldiq, qarz/balans, statistika, tranzaksiyalar va yagona to'lovlar jurnalini (`payments`) birga yangilaydi.
+- **`services/api.ts` — ma'lumot manbai.** `DataApi` interfeysi (`load` / `save`) va `sampleApi` (data/sample.ts nusxalari). `useStore` boshlang'ich holatni shu yerdan oladi — haqiqiy HTTP API'ga o'tish faqat shu faylda.
+
+Umumiy yordamchilar: `utils/phone.ts` (telefon formatlash/tekshirish), `utils/number.ts` (`parseNum`, `roundMoney`), `utils/id.ts` (`uid`), `composables/useMoney.ts` (UZS/USD ko'rinishi).
+
 ## Simulyatsiya qilingan qismlar
 
 Quyidagilar hozircha simulyatsiya qilingan, haqiqiy xizmatlarga ulanmagan:

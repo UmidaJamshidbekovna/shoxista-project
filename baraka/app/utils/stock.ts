@@ -49,8 +49,3 @@ export function productImages(p: Product) {
   return p.images?.length ? p.images : p.image ? [p.image] : []
 }
 
-/** Son parse: "12 500" yoki "12,5" -> son; bo'sh bo'lsa NaN */
-export function stockParseNum(v: string | number | undefined | null) {
-  const s = String(v ?? '').replace(/\s/g, '').replace(',', '.')
-  return s === '' ? Number.NaN : Number(s)
-}

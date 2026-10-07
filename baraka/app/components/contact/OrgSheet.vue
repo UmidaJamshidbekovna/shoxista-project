@@ -55,7 +55,7 @@ function save() {
     show('Tashkilot ma\'lumotlari saqlandi')
   }
   else {
-    id = `o${Date.now()}`
+    id = uid('o')
     const logoColor = orgColors[organizations.value.length % orgColors.length]!
     organizations.value = [{ id, ...data, balance: 0, ownCreated: true, categories: [], logoColor }, ...organizations.value]
     show('Tashkilot qo\'shildi')

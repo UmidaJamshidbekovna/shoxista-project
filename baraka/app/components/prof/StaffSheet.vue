@@ -31,7 +31,7 @@ watch(open, (v) => {
 watch(() => [sf.name, sf.phone, sf.permissions.length], () => { sfErr.value = '' }, { flush: 'sync' })
 
 function save() {
-  if (!sf.name.trim() || !profPhoneValid(sf.phone)) {
+  if (!sf.name.trim() || !isUzPhone(sf.phone, { loose: true })) {
     sfErr.value = 'Ism va telefon raqamni kiriting'
     return
   }
@@ -39,13 +39,13 @@ function save() {
     sfErr.value = 'Kamida bitta ruxsat tanlang'
     return
   }
-  const data = { name: sf.name.trim(), phone: profFormatPhone(sf.phone), role: sf.role, permissions: [...sf.permissions] }
+  const data = { name: sf.name.trim(), phone: formatUzPhone(sf.phone, { completeOnly: true }), role: sf.role, permissions: [...sf.permissions] }
   if (editing.value) {
     employees.value = employees.value.map(e => e.id === editing.value!.id ? { ...e, ...data } : e)
     show('Saqlandi')
   }
   else {
-    employees.value = [...employees.value, { ...data, id: `e${Date.now()}`, branchId: store.currentBranchId.value, active: true }]
+    employees.value = [...employees.value, { ...data, id: uid('e'), branchId: store.currentBranchId.value, active: true }]
     show('Xodim qo\'shildi')
   }
   open.value = false

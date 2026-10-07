@@ -14,11 +14,11 @@ function edit() {
 function save() {
   const d = draft.value
   if (!d || !me.value) return
-  if (!d.name.trim() || !profPhoneValid(d.phone)) return show('Ism va telefonni kiriting', 'error')
+  if (!d.name.trim() || !isUzPhone(d.phone, { loose: true })) return show('Ism va telefonni kiriting', 'error')
   const wasOwner = me.value.role === 'owner'
   const prevName = me.value.name
   me.value.name = d.name.trim()
-  me.value.phone = profFormatPhone(d.phone)
+  me.value.phone = formatUzPhone(d.phone, { completeOnly: true })
   if (wasOwner && business.value.owner === prevName) business.value.owner = me.value.name
   draft.value = null
   show('Saqlandi')

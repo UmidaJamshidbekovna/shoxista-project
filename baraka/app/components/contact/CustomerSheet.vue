@@ -45,7 +45,7 @@ function save() {
     show('Mijoz ma\'lumotlari saqlandi')
   }
   else {
-    id = `u${Date.now()}`
+    id = uid('u')
     customers.value = [{ id, ...data, debt: 0, totalSpent: 0, purchases: 0, lastVisit: new Date().toISOString() }, ...customers.value]
     show('Yangi mijoz qo\'shildi')
   }
