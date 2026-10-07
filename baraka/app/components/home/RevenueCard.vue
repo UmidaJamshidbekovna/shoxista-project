@@ -48,9 +48,8 @@ const title = computed(() => period.value === 'day'
   : period.value === 'week' ? 'Haftalik savdo' : `${formatDate(from.value)} — ${formatDate(to.value)}`)
 
 /** Summa Do'kon sozlamalaridagi valyutada (§3.2) */
-const money = computed(() => settings.value.currency === 'USD'
-  ? `$${(data.value.total / settings.value.usdRate).toFixed(2)}`
-  : formatSom(data.value.total))
+const { amount } = useMoney()
+const money = computed(() => amount(data.value.total))
 const currency = computed(() => settings.value.currency === 'USD' ? '' : 'so\'m')
 
 const peak = computed(() => Math.max(...data.value.points, 1))

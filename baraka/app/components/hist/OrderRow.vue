@@ -8,6 +8,7 @@ const props = defineProps<{ tx: Transaction }>()
 defineEmits<{ open: [] }>()
 const { settings, countsInTotal } = useStore()
 const party = useTxParty()
+const { amount } = useMoney()
 
 const name = computed(() => party(props.tx))
 const isSale = computed(() => props.tx.kind === 'sale')
@@ -58,7 +59,7 @@ const pay = computed(() => HIST_PAY[props.tx.payStatus])
       <span
         class="text-[15px] leading-[18px] font-extrabold whitespace-nowrap"
         :class="inactive ? 'text-[#a3a8b0] line-through' : 'text-brand'"
-      >{{ formatSom(tx.total) }}</span>
+      >{{ amount(tx.total) }}</span>
       <span class="text-[11.5px] font-semibold text-[#a3a8b0]">{{ tx.items.length }} ta</span>
     </span>
   </button>

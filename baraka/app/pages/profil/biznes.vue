@@ -1,151 +1,150 @@
 <script setup lang="ts">
-const { business } = useStore()
+// Biznes akkaunt (Profile.md §4): ko'rish / tahrirlash (mcDraft), username jonli tekshiruvi, filial bloki
+const { business, branches, warehouses } = useStore()
 const { show } = useToast()
-const { share, selection } = useTelegram()
 
-const COLORS = ['#05472a', '#0e8a5f', '#1d5bd8', '#7c3aed', '#c2410c', '#d92d20', '#12211a']
-const TAKEN = ['baraka', 'admin', 'shop', 'market', 'store', 'support', 'test']
+/** Band username'lar (simulyatsiya; backendda GET /merchant/username-available) */
+const TAKEN = ['baraka', 'admin', 'market', 'shop', 'store', 'korzinka', 'makro', 'havas', 'support', 'barakashop', 'test']
 
-const form = reactive({ ...business.value })
-const logoSrc = ref<string>()
-const fileInput = ref<HTMLInputElement>()
+type Draft = { username: string, name: string, activity: string, owner: string, phone: string, inn: string, description: string }
+const draft = ref<Draft | null>(null)
 
-function onFile(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (!f) return
-  if (!f.type.startsWith('image/')) return show('Faqat rasm fayl tanlang', 'error')
-  if (logoSrc.value) URL.revokeObjectURL(logoSrc.value)
-  logoSrc.value = URL.createObjectURL(f)
+function edit() {
+  const b = business.value
+  draft.value = draft.value
+    ? null
+    : { username: b.username, name: b.name, activity: b.activity ?? '', owner: b.owner, phone: b.phone, inn: b.inn, description: b.description }
 }
 
-// --- username: format + jonli tekshiruv ---
-const uState = ref<'idle' | 'checking' | 'free' | 'taken'>('free')
-let timer: ReturnType<typeof setTimeout> | undefined
-const uFormatError = computed(() => {
-  const u = form.username
-  if (u.length < 4) return 'Kamida 4 ta belgi'
-  if (u.length > 24) return 'Ko\'pi bilan 24 ta belgi'
-  if (!/^[a-z0-9_]+$/.test(u)) return 'Faqat kichik lotin harflari, raqam va _'
-  return ''
+// Kichik harfga o'tkaziladi; boshqa belgilar qoladi va xato ko'rsatiladi
+watch(() => draft.value?.username, (v) => {
+  if (draft.value && v != null && v !== v.toLowerCase()) draft.value.username = v.toLowerCase()
 })
-watch(() => form.username, (u) => {
-  clearTimeout(timer)
-  if (uFormatError.value) return (uState.value = 'idle')
-  if (u === business.value.username) return (uState.value = 'free')
-  uState.value = 'checking'
-  timer = setTimeout(() => {
-    if (form.username !== u) return
-    uState.value = TAKEN.includes(u) ? 'taken' : 'free'
-  }, 500)
+watch(() => draft.value?.inn, (v) => {
+  if (draft.value && v != null && /\D/.test(v)) draft.value.inn = v.replace(/\D/g, '')
 })
-function onUsernameInput(v: string | number) {
-  form.username = String(v).toLowerCase().replace(/\s+/g, '_')
+
+type UState = 'empty' | 'invalid' | 'taken' | 'ok'
+const uState = computed<UState>(() => {
+  const u = draft.value?.username.replace(/^@/, '') ?? ''
+  if (!u) return 'empty'
+  if (!/^[a-z0-9_]{4,24}$/.test(u)) return 'invalid'
+  if (u !== business.value.username && TAKEN.includes(u)) return 'taken'
+  return 'ok'
+})
+const U_UI: Record<UState, { color: string, border: string }> = {
+  empty: { color: '#8b9099', border: '#e4e7eb' },
+  invalid: { color: '#d93036', border: '#f3b4b6' },
+  taken: { color: '#d93036', border: '#f3b4b6' },
+  ok: { color: '#15803d', border: '#b7dfc3' },
 }
-
-const errors = computed(() => ({
-  name: form.name.trim().length < 2 ? 'Biznes nomini kiriting' : '',
-  username: uFormatError.value || (uState.value === 'taken' ? 'Bu nom band, boshqasini tanlang' : ''),
-  inn: /^\d{9}$/.test(form.inn) ? '' : 'STIR 9 ta raqamdan iborat bo\'lishi kerak',
-  phone: profPhoneValid(form.phone) ? '' : 'Telefon: +998 XX XXX XX XX',
-  description: form.description.length > 300 ? 'Juda uzun' : '',
-}))
-watch(() => form.inn, v => { const d = v.replace(/\D/g, '').slice(0, 9); if (d !== v) form.inn = d })
-const touched = reactive<Record<string, boolean>>({})
-const err = (k: keyof typeof errors.value) => touched[k] ? errors.value[k] : ''
-const valid = computed(() => Object.values(errors.value).every(e => !e) && uState.value === 'free')
-const dirty = computed(() => JSON.stringify(form) !== JSON.stringify(business.value) || !!logoSrc.value)
-
-const link = computed(() => `baraka.app/@${form.username}`)
-const qrValue = computed(() => `https://${link.value}`)
-
-async function copy() {
-  try {
-    await navigator.clipboard.writeText(qrValue.value)
-    show('Havola nusxalandi')
-  }
-  catch { show('Nusxalab bo\'lmadi', 'error') }
-}
+const uText = computed(() => ({
+  empty: 'Username kiriting',
+  invalid: '4–24 belgi: kichik lotin harflar, raqam va _',
+  taken: 'Bu username band',
+  ok: `@${draft.value?.username.replace(/^@/, '')} bo'sh — faqat sizga tegishli bo'ladi`,
+}[uState.value]))
+const hasError = computed(() => uState.value !== 'ok' || !draft.value?.name.trim())
 
 function save() {
-  Object.keys(errors.value).forEach(k => (touched[k] = true))
-  if (!valid.value) return show('Maydonlarni tekshiring', 'error')
-  business.value = { ...business.value, ...form, phone: profFormatPhone(form.phone) }
-  form.phone = business.value.phone
-  show('Biznes ma\'lumotlari saqlandi')
+  const d = draft.value
+  if (!d) return
+  if (uState.value !== 'ok') return show('Username to\'g\'ri emas', 'error')
+  if (!d.name.trim()) return show('Nomini kiriting', 'error')
+  business.value = {
+    ...business.value,
+    username: d.username.replace(/^@/, ''),
+    name: d.name.trim(),
+    activity: d.activity.trim(),
+    owner: d.owner.trim(),
+    phone: d.phone.trim() ? profFormatPhone(d.phone) : '',
+    inn: d.inn.trim(),
+    description: d.description.trim(),
+  }
+  draft.value = null
+  show('Saqlandi')
 }
+
+function setLogo(src: string) {
+  business.value = { ...business.value, logo: src }
+}
+
+const single = computed(() => branches.value.length === 1 ? branches.value[0] : undefined)
+const coords = (lat: number, lng: number) => `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 </script>
 
 <template>
-  <PageHeader title="Biznes akkaunt" subtitle="Ommaviy profil va QR kod" back="/profil" />
-
-  <div class="no-scrollbar flex min-h-0 grow flex-col *:shrink-0 gap-3.5 overflow-y-auto px-5 pb-6">
-    <!-- Logotip -->
-    <div class="card flex flex-col items-center gap-3 p-5">
-      <div class="relative">
-        <Avatar :name="form.name || 'B'" :src="logoSrc" :color="form.logoColor" square :size="88" />
-        <button
-          type="button" aria-label="Logotipni o'zgartirish"
-          class="absolute -right-1.5 -bottom-1.5 flex size-9 items-center justify-center rounded-full border-[3px] border-card bg-brand text-white"
-          @click="fileInput?.click()"
-        >
-          <AppIcon name="camera" :size="16" />
-        </button>
-        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile">
-      </div>
-      <div class="flex gap-2">
-        <button
-          v-for="c in COLORS" :key="c" type="button" :aria-label="`Rang ${c}`"
-          class="size-7 rounded-full ring-offset-2 transition"
-          :class="form.logoColor === c && !logoSrc ? 'ring-2 ring-brand' : ''"
-          :style="{ background: c }"
-          @click="form.logoColor = c; logoSrc = undefined; selection()"
+  <ProfPage>
+    <ProfHeader>
+      <template #title>
+        <ProfAvatar
+          :name="business.name" :src="business.logo" :size="48" :radius="15" :font="16" :bg="business.logoColor" color="#fff"
+          :upload="!!draft" @pick="setLogo"
         />
-      </div>
-      <p class="text-xs font-medium text-muted">Rasm yuklang yoki rang tanlang</p>
-    </div>
+        <div class="min-w-0 grow">
+          <h1 class="truncate text-[17px] leading-tight font-extrabold tracking-[-0.02em] text-ink">{{ business.name }}</h1>
+          <p class="truncate text-[12.5px] font-bold text-brand">@{{ business.username }}</p>
+        </div>
+      </template>
+      <ProfIconBtn :icon="draft ? 'x' : 'edit'" :label="draft ? 'Bekor qilish' : 'Tahrirlash'" :tone="draft ? 'danger' : 'white'" @click="edit" />
+    </ProfHeader>
 
-    <div class="card flex flex-col gap-3.5 p-4">
-      <BInput v-model="form.name" label="Biznes nomi" placeholder="Masalan: Baraka Market" icon="store" :error="err('name')" @focusout="touched.name = true" />
+    <!-- Ko'rish rejimi -->
+    <template v-if="!draft">
+      <ProfSection title="Merchant">
+        <ProfCard class="px-4 py-1">
+          <ProfKv k="Faoliyat turi" :v="business.activity" />
+          <ProfKv k="Egasi" :v="business.owner" />
+          <ProfKv k="Telefon" :v="business.phone" />
+          <ProfKv k="STIR (INN)" :v="business.inn" />
+        </ProfCard>
+      </ProfSection>
 
-      <BInput
-        :model-value="form.username" label="Username" placeholder="barakamarket" :maxlength="24"
-        :error="(form.username || touched.username) ? errors.username : ''"
-        @update:model-value="onUsernameInput" @focusout="touched.username = true"
-      >
-        <template #end>
-          <span v-if="uState === 'checking'" class="size-5 shrink-0 animate-spin rounded-full border-[2.5px] border-brand/20 border-t-brand" aria-label="Tekshirilmoqda" />
-          <span v-else-if="uState === 'free'" class="flex size-6 shrink-0 items-center justify-center rounded-full bg-soft text-brand"><AppIcon name="check" :size="14" :stroke="3" /></span>
-          <span v-else-if="uState === 'taken'" class="flex size-6 shrink-0 items-center justify-center rounded-full bg-danger-soft text-danger"><AppIcon name="x" :size="14" :stroke="3" /></span>
-        </template>
-      </BInput>
-      <p v-if="uState === 'free' && !uFormatError" class="-mt-2 text-xs font-bold text-brand">✓ {{ form.username === business.username ? 'Joriy username' : `@${form.username} bo'sh` }}</p>
-      <p v-else-if="uState === 'checking'" class="-mt-2 text-xs font-semibold text-muted">Tekshirilmoqda…</p>
-      <p v-else-if="!form.username" class="-mt-2 text-xs font-medium text-muted">4–24 belgi: a–z, 0–9, _</p>
+      <ProfSection title="Tavsif">
+        <ProfCard class="p-4">
+          <p class="text-[13.5px] leading-[1.55] whitespace-pre-line text-[#374151]">{{ business.description || 'Tavsif kiritilmagan' }}</p>
+        </ProfCard>
+      </ProfSection>
 
-      <BInput v-model="form.inn" label="STIR (INN)" placeholder="9 ta raqam" inputmode="numeric" :maxlength="9" icon="file" :error="err('inn')" @focusout="touched.inn = true" />
-      <BInput v-model="form.phone" label="Telefon" placeholder="+998 90 123 45 67" inputmode="tel" type="tel" icon="phone" :error="err('phone')" @focusout="touched.phone = true" />
-      <div>
-        <BInput v-model="form.description" label="Tavsif" placeholder="Biznesingiz haqida qisqacha" multiline :maxlength="300" />
-        <p class="mt-1 text-right text-[11px] font-bold" :class="form.description.length > 270 ? 'text-warn' : 'text-muted'">{{ form.description.length }}/300</p>
-      </div>
-    </div>
+      <ProfSection v-if="single" title="Filial">
+        <ProfCard class="px-4 py-1">
+          <ProfKv k="Filial nomi" :v="single.name" />
+          <ProfKv k="Manzil" :v="single.address" />
+          <ProfKv k="Koordinata" :v="coords(single.lat, single.lng)" />
+          <ProfKv k="Mas'ul shaxs" :v="single.manager" />
+          <ProfKv k="Ish vaqti" :v="profTodayText(single)" chevron @click="navigateTo(`/profil/filiallar/${single.id}`)" />
+        </ProfCard>
+        <ProfBtn variant="soft" icon="plus" @click="navigateTo('/profil/filiallar/new?type=branch')">Filial qo'shish</ProfBtn>
+      </ProfSection>
 
-    <!-- QR -->
-    <div class="card flex flex-col items-center gap-3 p-5">
-      <SectionHead title="QR kod" class="w-full" />
-      <div class="rounded-[22px] border border-line bg-white p-2 shadow-card">
-        <ProfQrCode :value="qrValue" :size="196" color="#05472a" />
-      </div>
-      <p class="text-[15px] font-extrabold text-brand">{{ link }}</p>
-      <p class="-mt-2 text-center text-xs font-medium text-muted">Mijozlar skanerlab do'koningiz sahifasini ochadi</p>
-      <div class="flex w-full gap-2.5">
-        <PillButton variant="soft" size="sm" icon="link" class="grow basis-0" @click="copy">Nusxalash</PillButton>
-        <PillButton variant="soft" size="sm" icon="share" class="grow basis-0" @click="share(qrValue)">Ulashish</PillButton>
-      </div>
-    </div>
-  </div>
+      <NuxtLink v-else to="/profil/filiallar?tab=filial" class="flex items-center gap-3 rounded-[22px] bg-card p-4 shadow-[0_2px_10px_rgba(5,71,42,0.05)] active:opacity-80">
+        <span class="flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-soft text-brand">
+          <AppIcon name="store" :size="18" :stroke="1.8" />
+        </span>
+        <span class="min-w-0 grow">
+          <span class="block text-[14px] font-bold text-ink">Filiallar</span>
+          <span class="block truncate text-[11.5px] text-muted">{{ branches.length }} ta filial · {{ warehouses.length }} ta ombor · ish vaqti</span>
+        </span>
+        <AppIcon name="chevron-right" :size="16" :stroke="2.2" class="shrink-0 text-[#a3a8b0]" />
+      </NuxtLink>
+    </template>
 
-  <div class="pb-safe shrink-0 bg-card px-5 pt-3 pb-4 shadow-[0_-4px_14px_rgba(5,71,42,0.06)]">
-    <PillButton block icon="check" :disabled="!dirty || !valid" @click="save">Saqlash</PillButton>
-  </div>
+    <!-- Tahrirlash rejimi -->
+    <template v-else>
+      <ProfCard class="grid gap-3.5 p-4">
+        <ProfField v-model="draft.username" label="Username" prefix="@" placeholder="barakamarket" :maxlength="24" :border="U_UI[uState].border">
+          <template #below>
+            <span class="px-1 text-[11.5px] font-bold" :style="{ color: U_UI[uState].color }">{{ uText }}</span>
+          </template>
+        </ProfField>
+        <ProfField v-model="draft.name" label="Do'kon nomi" placeholder="Masalan: Baraka Market" />
+        <ProfField v-model="draft.activity" label="Faoliyat turi" placeholder="Masalan: Oziq-ovqat do'koni" />
+        <ProfField v-model="draft.owner" label="Egasi" placeholder="Ism familiya" />
+        <ProfField v-model="draft.phone" label="Telefon" type="tel" inputmode="tel" placeholder="+998 __ ___ __ __" />
+        <ProfField v-model="draft.inn" label="STIR (INN)" inputmode="numeric" placeholder="9 xonali raqam" :maxlength="14" />
+        <ProfField v-model="draft.description" label="Tavsif" multiline :rows="4" placeholder="Do'koningiz haqida qisqacha" />
+      </ProfCard>
+      <ProfBtn :dim="hasError" @click="save">Saqlash</ProfBtn>
+    </template>
+  </ProfPage>
 </template>

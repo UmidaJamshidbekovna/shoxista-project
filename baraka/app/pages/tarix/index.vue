@@ -10,6 +10,7 @@ const { countsInTotal, txById } = useStore()
 const { dir, query, hf } = useHistFilters()
 const { run, activeCount } = useHistList()
 const { selection } = useTelegram()
+const { amount } = useMoney()
 
 const filterOpen = ref(false)
 const orderOpen = ref(false)
@@ -75,7 +76,7 @@ watch(() => [route.query.dir, route.query.order], consumeQuery, { immediate: tru
     <header class="flex items-center gap-3">
       <div class="min-w-0 grow">
         <h1 class="truncate text-[25px] leading-tight font-extrabold tracking-[-0.02em] text-ink">Tarix</h1>
-        <p class="mt-[3px] truncate text-[13px] font-semibold text-muted">{{ list.length }} ta buyurtma · {{ formatSom(total) }}</p>
+        <p class="mt-[3px] truncate text-[13px] font-semibold text-muted">{{ list.length }} ta buyurtma · {{ amount(total) }}</p>
       </div>
       <HistRateWidget />
     </header>
@@ -126,7 +127,7 @@ watch(() => [route.query.dir, route.query.order], consumeQuery, { immediate: tru
       <section v-for="g in groups" :key="g.key" class="flex flex-col gap-2.5">
         <div class="flex items-baseline justify-between gap-3 px-1">
           <h2 class="text-[11.5px] font-extrabold tracking-[.06em] text-muted">{{ g.label }}</h2>
-          <span class="text-[12.5px] font-extrabold text-[#6b7280]">{{ formatSom(g.total) }}</span>
+          <span class="text-[12.5px] font-extrabold text-[#6b7280]">{{ amount(g.total) }}</span>
         </div>
         <HistOrderRow v-for="t in g.items" :key="t.id" :tx="t" @open="openOrder(t.id)" />
       </section>

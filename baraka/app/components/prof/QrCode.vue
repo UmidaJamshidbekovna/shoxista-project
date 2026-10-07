@@ -1,16 +1,16 @@
 <script setup lang="ts">
-// Haqiqiy, skanerlanadigan QR kod (SVG). Matn 78 baytdan oshsa — xabar ko'rsatiladi.
-const props = withDefaults(defineProps<{ value: string, size?: number, color?: string }>(), { size: 200, color: '#12211a' })
+// Haqiqiy, skanerlanadigan QR kod (SVG). "baraka.app/@username" (≤ 32 bayt) — versiya 2, ya'ni 25×25 katak
+// va 3 ta burchak belgisi (Profile.md §3). Matn 78 baytdan oshsa — xabar ko'rsatiladi.
+const props = withDefaults(defineProps<{ value: string, size?: number, color?: string, quiet?: number }>(), { size: 200, color: '#12211a', quiet: 4 })
 const matrix = computed(() => encodeQr(props.value))
-const quiet = 4
 const path = computed(() => {
   const m = matrix.value
   if (!m) return ''
   let d = ''
-  m.forEach((row, y) => row.forEach((on, x) => { if (on) d += `M${x + quiet} ${y + quiet}h1v1h-1z` }))
+  m.forEach((row, y) => row.forEach((on, x) => { if (on) d += `M${x + props.quiet} ${y + props.quiet}h1v1h-1z` }))
   return d
 })
-const dim = computed(() => (matrix.value?.length ?? 21) + quiet * 2)
+const dim = computed(() => (matrix.value?.length ?? 21) + props.quiet * 2)
 </script>
 
 <template>

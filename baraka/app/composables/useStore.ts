@@ -27,22 +27,38 @@ export function useStore() {
   const carts = useState<Cart[]>('carts', () => [newCart(1)])
   const activeCartId = useState('active-cart', () => carts.value[0]!.id)
 
+  /** Sozlamalar (Profile.md §8, §11) */
   const settings = useState('settings', () => ({
-    theme: 'light' as 'light' | 'dark' | 'system',
-    lang: 'uz' as 'uz' | 'en',
-    notifications: { orders: true, lowStock: true, debts: true, chat: true },
+    // Do'kon sozlamalari
     currency: 'UZS' as 'UZS' | 'USD',
     usdRate: 12650,
     b2b: true,
-    manualConfirm: false,
+    confirm: false,
     showPrices: true,
+    showPhone: true,
     dailyReport: true,
-    lowStockAlert: true,
+    lowStock: true,
+    // Ilova sozlamalari
+    theme: 'day' as 'day' | 'night' | 'system',
+    lang: 'uz' as 'uz' | 'ru' | 'en',
+    push: true,
   }))
 
+  /** Ijtimoiy tarmoqlar (Profile.md §7). permissions: e'lon joylash, kommentga va mijozlarga javob */
   const socials = useState('socials', () => ({
-    telegram: { connected: true, botToken: '7012345678:AAHdemoTokenBarakaMarket_0123456789ab', channel: '@barakamarket', adminChatId: '-1001234567890' },
-    instagram: { connected: false, account: '' },
+    telegram: {
+      connected: true,
+      botToken: '7712345678:AAHdemoBarakaMarketToken_AAF6qP',
+      botUsername: '@baraka_shop_bot',
+      channel: '@baraka_market',
+      adminChatId: '-1001842736510',
+      permissions: { post: true, comments: true, clients: true },
+    },
+    instagram: {
+      connected: false,
+      account: '',
+      permissions: { post: true, comments: true, clients: false },
+    },
   }))
 
   // --- yordamchilar ---

@@ -102,9 +102,11 @@ export interface Branch {
   manager: string
   phone: string
   hours: WorkDay[]
+  /** Asosiy filial (bittasi) */
+  main?: boolean
 }
 
-export interface Warehouse { id: string, name: string, branchId: string, address: string, manager: string }
+export interface Warehouse { id: string, name: string, branchId: string, address: string, manager: string, lat?: number, lng?: number }
 
 export interface Employee {
   id: string
@@ -114,6 +116,8 @@ export interface Employee {
   branchId: string
   active: boolean
   permissions: string[]
+  /** Profil rasmi (data URL) */
+  avatar?: string
 }
 
 export interface ChatMessage { id: string, from: 'me' | 'them' | 'ai', text: string, time: string, orderId?: string }
@@ -163,7 +167,13 @@ export interface Business {
   phone: string
   logoColor: string
   type: 'offline' | 'online' | 'mixed' | 'wholesale'
-  plan: 'Start' | 'Pro' | 'Enterprise'
+  plan: Plan
   planUntil: string
   owner: string
+  /** Faoliyat turi, masalan "Oziq-ovqat do'koni" */
+  activity?: string
+  /** Logo (data URL) */
+  logo?: string
 }
+
+export type Plan = 'Start' | 'Pro' | 'Biznes'

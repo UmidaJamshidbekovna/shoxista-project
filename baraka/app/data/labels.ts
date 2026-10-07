@@ -39,18 +39,20 @@ export const roleLabel: Record<Role, string> = { owner: 'Egasi', manager: 'Menej
 export const debtTermLabel: Record<DebtTerm, string> = { '3d': '3 kun', '1w': '1 hafta', '2w': '2 hafta', '1m': '1 oy' }
 export const debtTermDays: Record<DebtTerm, number> = { '3d': 3, '1w': 7, '2w': 14, '1m': 30 }
 
+/** Xodim ruxsatlari (Profile.md §6) */
 export const permissionList = [
-  { id: 'sales', label: 'Sotish (POS)' },
-  { id: 'inventory', label: 'Ombor va kirim' },
+  { id: 'kassa', label: 'Kassa' },
+  { id: 'orders', label: 'Buyurtmalar' },
+  { id: 'stock', label: 'Ombor' },
+  { id: 'kirim', label: 'Kirim' },
+  { id: 'customers', label: 'Mijozlar' },
   { id: 'reports', label: 'Hisobotlar' },
-  { id: 'customers', label: 'Mijozlar va qarzlar' },
-  { id: 'orders', label: 'Online buyurtmalar' },
-  { id: 'chat', label: 'Chat' },
-  { id: 'settings', label: 'Do\'kon sozlamalari' },
+  { id: 'delivery', label: 'Yetkazish' },
 ] as const
 
+/** Tarif limitlari (Profile.md §9). Infinity — cheksiz; ai — oylik AI xabarlar */
 export const planLimits = {
-  Start: { employees: 2, branches: 1, products: 200, ai: 50 },
-  Pro: { employees: 10, branches: 3, products: 5000, ai: 1000 },
-  Enterprise: { employees: 999, branches: 99, products: 99999, ai: 99999 },
+  Start: { employees: 1, branches: 1, products: 100, ai: 0 },
+  Pro: { employees: 5, branches: 1, products: Infinity, ai: 3000 },
+  Biznes: { employees: Infinity, branches: Infinity, products: Infinity, ai: Infinity },
 } as const

@@ -26,14 +26,16 @@ export const business: Business = {
   logoColor: '#05472a',
   type: 'mixed',
   plan: 'Pro',
-  planUntil: '2026-12-31',
+  // Keyingi to'lov — bugundan 14 kun keyin (Profile.md §1.3: "14 kun qoldi")
+  planUntil: new Date(today.getTime() + 14 * 86400000).toISOString().slice(0, 10),
   owner: 'Aziz Rahimov',
+  activity: 'Oziq-ovqat do\'koni',
 }
 
 export const branches: Branch[] = [
   {
     id: 'b1', name: 'Chilonzor filiali', address: 'Toshkent, Chilonzor 9-kvartal, 14-uy', lat: 41.2755, lng: 69.2034, manager: 'Aziz Rahimov', phone: '+998 90 123 45 67',
-    hours: weekHours('08:00', '22:00'),
+    hours: weekHours('08:00', '22:00'), main: true,
   },
   {
     id: 'b2', name: 'Yunusobod filiali', address: 'Toshkent, Yunusobod 4-mavze, 21-uy', lat: 41.3651, lng: 69.2867, manager: 'Dilshod Karimov', phone: '+998 91 234 56 78',
@@ -51,7 +53,7 @@ function weekHours(open: string, close: string, sundayOff = false) {
 }
 
 export const warehouses: Warehouse[] = [
-  { id: 'w1', name: 'Asosiy ombor', branchId: 'b1', address: 'Chilonzor 9-kvartal, 14-uy (yerto\'la)', manager: 'Jasur Tursunov' },
+  { id: 'w1', name: 'Markaziy ombor', branchId: 'b3', address: 'Toshkent, Sergeli 7-mavze, 3-uy', manager: 'Jasur Tursunov', lat: 41.2249, lng: 69.2183 },
   { id: 'w2', name: 'Yunusobod ombori', branchId: 'b2', address: 'Yunusobod 4-mavze, 21-uy', manager: 'Dilshod Karimov' },
   { id: 'w3', name: 'Sergeli ombori', branchId: 'b3', address: 'Sergeli 7-mavze, 3-uy', manager: 'Nodira Yusupova' },
 ]
@@ -190,10 +192,10 @@ export const transactions: Transaction[] = [
 
 export const employees: Employee[] = [
   { id: 'e1', name: 'Aziz Rahimov', phone: '+998 90 123 45 67', role: 'owner', branchId: 'b1', active: true, permissions: ['*'] },
-  { id: 'e2', name: 'Dilshod Karimov', phone: '+998 91 234 56 78', role: 'manager', branchId: 'b2', active: true, permissions: ['sales', 'inventory', 'reports', 'customers'] },
-  { id: 'e3', name: 'Kamola Ergasheva', phone: '+998 93 456 78 90', role: 'cashier', branchId: 'b1', active: true, permissions: ['sales', 'customers'] },
-  { id: 'e4', name: 'Jasur Tursunov', phone: '+998 94 567 89 01', role: 'storekeeper', branchId: 'b1', active: true, permissions: ['inventory'] },
-  { id: 'e5', name: 'Otabek Nazarov', phone: '+998 97 678 90 12', role: 'courier', branchId: 'b1', active: false, permissions: ['orders'] },
+  { id: 'e2', name: 'Dilshod Karimov', phone: '+998 91 234 56 78', role: 'manager', branchId: 'b2', active: true, permissions: ['kassa', 'orders', 'stock', 'kirim', 'customers', 'reports'] },
+  { id: 'e3', name: 'Kamola Ergasheva', phone: '+998 93 456 78 90', role: 'cashier', branchId: 'b1', active: true, permissions: ['kassa', 'customers'] },
+  { id: 'e4', name: 'Jasur Tursunov', phone: '+998 94 567 89 01', role: 'storekeeper', branchId: 'b1', active: true, permissions: ['stock', 'kirim'] },
+  { id: 'e5', name: 'Otabek Nazarov', phone: '+998 97 678 90 12', role: 'courier', branchId: 'b1', active: false, permissions: ['orders', 'delivery'] },
 ]
 
 export const chats: ChatThread[] = [

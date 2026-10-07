@@ -1,145 +1,147 @@
 <script setup lang="ts">
-import { permissionList, planLimits, roleLabel } from '~/data/labels'
+// Profil (Profile.md §1, §10): foydalanuvchi kartasi, tarif / ish joyi kartasi, menyu guruhlari, Chiqish
+import type { IconName } from '~/components/AppIcon.vue'
+import { permissionList, roleLabel } from '~/data/labels'
+import { ONBOARDED_KEY } from '~/middleware/onboarding.global'
 
 definePageMeta({ tab: true })
 
 const store = useStore()
-const { business, branches, employees, products, role, currentBranchId } = store
-const { user, selection, haptic } = useTelegram()
+const { business, branches, warehouses, employees, chats, role } = store
+const { me } = useProfMe()
+const { show } = useToast()
 
-const userName = computed(() => user ? [user.first_name, user.last_name].filter(Boolean).join(' ') : business.value.owner)
-const userHandle = computed(() => user?.username ? `@${user.username}` : business.value.phone)
+const owner = computed(() => role.value === 'owner')
+const qrOpen = ref(false)
 
-const limits = computed(() => planLimits[business.value.plan])
-const daysLeft = computed(() => Math.max(0, Math.ceil((new Date(business.value.planUntil).getTime() - Date.now()) / 86400000)))
+const daysLeft = computed(() => profDaysLeft(business.value.planUntil))
+const myBranch = computed(() => branches.value.find(b => b.id === me.value?.branchId))
+const myPerms = computed(() => permissionList.filter(p => me.value?.permissions.includes(p.id)))
+const supportId = computed(() => chats.value.find(c => c.kind === 'support')?.id)
 
-const branch = computed(() => store.branchById(currentBranchId.value))
-const staffPerms = ['sales', 'customers', 'orders', 'chat']
+interface Item { label: string, sub: string, icon: IconName, to: string }
+const groups = computed(() => {
+  const g: { title: string, items: Item[] }[] = []
+  if (owner.value) {
+    const manage: Item[] = [
+      { label: 'Biznes akkaunt', sub: `${business.value.name} · ${business.value.owner}`, icon: 'store', to: '/profil/biznes' },
+    ]
+    if (branches.value.length > 1)
+      manage.push({ label: 'Filiallar', sub: `${branches.value.length} ta filial · ish vaqti`, icon: 'store', to: '/profil/filiallar?tab=filial' })
+    manage.push(
+      { label: 'Omborlar', sub: `${warehouses.value.length} ta ombor`, icon: 'box', to: '/profil/filiallar?tab=ombor' },
+      { label: 'Xodimlar', sub: `${employees.value.length} ta xodim · rollar va ruxsatlar`, icon: 'users', to: '/profil/xodimlar' },
+      { label: 'Ijtimoiy tarmoqlar', sub: 'Instagram, Telegram · AI yordamchi', icon: 'link', to: '/profil/ijtimoiy' },
+      { label: 'Do\'kon sozlamalari', sub: 'Valyuta, savdo, hisobot', icon: 'sliders', to: '/profil/sozlamalar?mode=store' },
+    )
+    g.push({ title: 'Boshqaruv', items: manage })
+    g.push({ title: 'Hisob', items: [{ label: 'Obuna', sub: `${business.value.plan} tarif · ${daysLeft.value} kun qoldi`, icon: 'crown', to: '/profil/obuna' }] })
+  }
+  g.push({
+    title: 'Umumiy',
+    items: [
+      { label: 'Ilova sozlamalari', sub: 'Mavzu, til, bildirishnomalar', icon: 'mobile', to: '/profil/sozlamalar?mode=app' },
+      { label: 'Yordam', sub: 'Tizim admini bilan chat', icon: 'help', to: supportId.value ? `/chat/${supportId.value}` : '/chat' },
+    ],
+  })
+  return g
+})
 
-const ownerMenu = computed(() => [
-  { icon: 'store', title: 'Biznes akkaunt', subtitle: `@${business.value.username}`, to: '/profil/biznes' },
-  { icon: 'map-pin', title: 'Filiallar', subtitle: 'Manzil, ish vaqti, mas\'ul', value: String(branches.value.length), to: '/profil/filiallar' },
-  { icon: 'warehouse', title: 'Omborlar', subtitle: 'Ombor va mas\'ullar', value: String(store.warehouses.value.length), to: '/profil/omborlar' },
-  { icon: 'users', title: 'Xodimlar', subtitle: 'Rollar va ruxsatlar', value: String(employees.value.length), to: '/profil/xodimlar' },
-  { icon: 'telegram', title: 'Ijtimoiy tarmoqlar', subtitle: 'Telegram, Instagram', to: '/profil/ijtimoiy' },
-  { icon: 'settings', title: 'Do\'kon sozlamalari', subtitle: 'Valyuta, B2B, hisobotlar', to: '/profil/dokon' },
-  { icon: 'crown', title: 'Obuna', subtitle: `${business.value.plan} tarifi`, to: '/profil/obuna' },
-] as const)
-
-const logoutOpen = ref(false)
 function logout() {
-  haptic('medium')
-  try { localStorage.removeItem('baraka:onboarded') } catch {}
-  logoutOpen.value = false
-  navigateTo('/onboarding')
+  show('Hisobdan chiqildi')
+  setTimeout(() => {
+    try { localStorage.removeItem(ONBOARDED_KEY) }
+    catch {}
+    navigateTo('/onboarding', { replace: true })
+  }, 700)
 }
+
+const roles = [{ value: 'owner', label: 'Egasi' }, { value: 'staff', label: 'Xodim' }] as const
 </script>
 
 <template>
-  <PageHeader title="Profil" />
+  <ProfPage tab>
+    <h1 class="text-[25px] leading-tight font-extrabold tracking-[-0.02em] text-ink">Profil</h1>
 
-  <div class="no-scrollbar flex min-h-0 grow flex-col *:shrink-0 gap-3.5 overflow-y-auto px-5 pb-28">
-    <!-- Foydalanuvchi -->
-    <div class="card flex items-center gap-3 p-4">
-      <Avatar :name="userName" :src="user?.photo_url" :size="56" />
-      <div class="min-w-0 grow">
-        <p class="truncate text-[17px] font-extrabold">{{ userName }}</p>
-        <p class="truncate text-[13px] font-medium text-muted">{{ userHandle }}</p>
-      </div>
-      <Badge :tone="role === 'owner' ? 'solid' : 'info'">{{ role === 'owner' ? 'Egasi' : 'Kassir' }}</Badge>
+    <!-- 1.2 Foydalanuvchi kartasi -->
+    <div
+      role="link" tabindex="0" aria-label="Shaxsiy ma'lumotlar"
+      class="flex cursor-pointer items-center gap-[14px] rounded-3xl bg-card p-4 shadow-[0_2px_10px_rgba(5,71,42,0.05)] transition-transform active:scale-[0.99]"
+      @click="navigateTo('/profil/shaxsiy')" @keydown.enter="navigateTo('/profil/shaxsiy')"
+    >
+      <ProfAvatar :name="me?.name ?? ''" :src="me?.avatar" :size="62" :font="20" />
+      <span class="min-w-0 grow">
+        <span class="block truncate text-[17px] font-extrabold text-ink">{{ me?.name }}</span>
+        <span class="mt-0.5 block truncate text-[12.5px] text-muted">{{ profRoleText(me) }} · {{ me?.phone }}</span>
+      </span>
+      <button
+        type="button" aria-label="Do'kon QR kodi"
+        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-soft text-brand transition-transform active:scale-95"
+        @click.stop="qrOpen = true"
+      >
+        <AppIcon name="qr" :size="18" :stroke="1.8" />
+      </button>
     </div>
 
-    <!-- Demo rol almashtirish -->
-    <div class="flex items-center gap-3 rounded-[18px] border border-dashed border-[#c9d6ce] px-4 py-2.5">
-      <span class="shrink-0 text-xs font-bold text-muted-2">Rol (demo):</span>
-      <Segmented v-model="role" class="grow" :options="[{ value: 'owner', label: 'Egasi' }, { value: 'staff', label: 'Xodim' }]" />
-    </div>
+    <!-- 1.3 Tarif kartasi (faqat egasi) -->
+    <NuxtLink v-if="owner" to="/profil/obuna" class="flex items-center gap-3 rounded-[22px] bg-brand p-4 text-white transition-transform active:scale-[0.99]">
+      <span class="flex size-[42px] shrink-0 items-center justify-center rounded-[13px] bg-white/12 text-[#4ade80]">
+        <AppIcon name="crown" :size="20" :stroke="1.9" />
+      </span>
+      <span class="min-w-0 grow">
+        <span class="block truncate text-[14px] font-extrabold">{{ business.plan }} tarif faol</span>
+        <span class="mt-0.5 block truncate text-[12px] text-[#aab0b8]">Keyingi to'lov {{ profDateUz(business.planUntil) }} · {{ daysLeft }} kun qoldi</span>
+      </span>
+      <AppIcon name="chevron-right" :size="16" :stroke="2.2" class="shrink-0 text-[#aab0b8]" />
+    </NuxtLink>
 
-    <template v-if="role === 'owner'">
-      <!-- Tarif kartasi -->
-      <NuxtLink to="/profil/obuna" class="relative overflow-hidden rounded-[24px] bg-brand p-5 text-white shadow-float" @click="selection()">
-        <span class="pointer-events-none absolute -top-10 -right-8 size-36 rounded-full bg-white/8" />
-        <span class="pointer-events-none absolute -right-2 bottom-[-40px] size-24 rounded-full bg-white/6" />
-        <div class="relative flex items-center gap-3">
-          <span class="flex size-11 items-center justify-center rounded-full bg-white/15"><AppIcon name="crown" :size="22" /></span>
-          <div class="grow">
-            <p class="text-xs font-bold text-white/70">Joriy tarif</p>
-            <p class="text-[22px] leading-tight font-extrabold">{{ business.plan }}</p>
-          </div>
-          <span class="rounded-full bg-white/15 px-3 py-1.5 text-xs font-extrabold">{{ formatDate(business.planUntil) }} gacha</span>
-        </div>
-        <div class="relative mt-4 flex flex-col gap-3">
-          <ProfLimitBar dark label="Xodimlar" :used="employees.length" :limit="limits.employees" />
-          <ProfLimitBar dark label="Filiallar" :used="branches.length" :limit="limits.branches" />
-          <ProfLimitBar dark label="Mahsulotlar" :used="products.length" :limit="limits.products" />
-        </div>
-        <div class="relative mt-4 flex items-center justify-between text-[13px] font-bold">
-          <span class="text-white/75">{{ daysLeft }} kun qoldi</span>
-          <span class="flex items-center gap-1">Tarifni boshqarish <AppIcon name="chevron-right" :size="16" /></span>
-        </div>
-      </NuxtLink>
-
-      <div class="card px-4 py-1">
-        <ListRow v-for="m in ownerMenu" :key="m.to" v-bind="m" @click="selection()" />
-      </div>
-    </template>
-
-    <template v-else>
-      <!-- Ish joyi (faqat ko'rish) -->
-      <div class="card p-4">
+    <!-- 1.4 Ish joyi kartasi (faqat xodim) -->
+    <ProfSection v-else title="Ish joyi">
+      <ProfCard class="grid gap-3 p-4">
         <div class="flex items-center gap-3">
-          <Avatar :name="business.name" :color="business.logoColor" square :size="52" />
+          <ProfAvatar :name="business.name" :src="business.logo" :size="46" :radius="14" :font="15" :bg="business.logoColor" color="#fff" />
           <div class="min-w-0 grow">
-            <p class="text-xs font-bold text-muted">Ish joyi</p>
-            <p class="truncate text-[17px] font-extrabold">{{ business.name }}</p>
+            <p class="truncate text-[15.5px] font-extrabold text-ink">{{ business.name }}</p>
+            <p class="truncate text-[12px] text-muted">{{ myBranch?.name ?? '—' }}</p>
           </div>
-          <Badge><AppIcon name="eye" :size="12" />Faqat ko'rish</Badge>
+          <span v-if="me" class="shrink-0 rounded-full bg-soft px-2.5 py-1 text-[11px] font-extrabold text-brand">{{ roleLabel[me.role] }}</span>
         </div>
-        <div class="mt-4 grid grid-cols-2 gap-2.5">
-          <div class="rounded-2xl bg-field p-3">
-            <p class="text-[11px] font-bold text-muted">Filial</p>
-            <p class="text-sm font-extrabold">{{ branch?.name ?? '—' }}</p>
+        <div class="grid gap-2 border-t border-[#f0f1f4] pt-3">
+          <p class="text-[12.5px] font-bold text-[#5b616b]">Ruxsatlar</p>
+          <div class="flex flex-wrap gap-1.5">
+            <span v-for="p in myPerms" :key="p.id" class="rounded-[10px] bg-[#f4f6f9] px-2.5 py-1 text-[12px] font-bold text-[#374151]">{{ p.label }}</span>
+            <span v-if="!myPerms.length" class="text-[12px] text-muted">Ruxsat berilmagan</span>
           </div>
-          <div class="rounded-2xl bg-field p-3">
-            <p class="text-[11px] font-bold text-muted">Rol</p>
-            <p class="text-sm font-extrabold">{{ roleLabel.cashier }}</p>
-          </div>
+          <p class="text-[11.5px] text-muted">Ruxsatlarni do'kon egasi boshqaradi.</p>
         </div>
-        <p class="mt-4 mb-2 text-[13px] font-bold text-muted-2">Ruxsatlar</p>
-        <ul class="flex flex-col gap-2">
-          <li v-for="p in permissionList" :key="p.id" class="flex items-center gap-2.5 text-sm font-semibold" :class="staffPerms.includes(p.id) ? 'text-ink' : 'text-muted'">
-            <span class="flex size-6 items-center justify-center rounded-full" :class="staffPerms.includes(p.id) ? 'bg-soft text-brand' : 'bg-field text-muted'">
-              <AppIcon :name="staffPerms.includes(p.id) ? 'check' : 'x'" :size="14" :stroke="2.6" />
-            </span>
-            {{ p.label }}
-          </li>
-        </ul>
-        <p class="mt-3 flex items-start gap-1.5 text-xs font-medium text-muted">
-          <AppIcon name="info" :size="14" class="mt-px shrink-0" />Ruxsatlarni faqat biznes egasi o'zgartira oladi.
-        </p>
-      </div>
-    </template>
+      </ProfCard>
+    </ProfSection>
 
-    <SectionHead title="Umumiy" class="mt-1" />
-    <div class="card px-4 py-1">
-      <ListRow icon="settings" title="Ilova sozlamalari" subtitle="Mavzu, til, bildirishnomalar" to="/profil/sozlamalar" />
-      <ListRow icon="headset" title="Yordam" subtitle="Qo'llab-quvvatlash bilan chat" to="/chat" />
-      <ListRow icon="logout" title="Chiqish" danger :chevron="false" @click="logoutOpen = true" />
-    </div>
-    <p class="text-center text-[11px] font-semibold text-muted">Baraka Store Manager · v1.0.0</p>
-  </div>
+    <!-- 1.5 Menyu guruhlari -->
+    <ProfSection v-for="g in groups" :key="g.title" :title="g.title">
+      <ProfCard class="px-[14px] py-1">
+        <ProfMenuRow v-for="i in g.items" :key="i.label" v-bind="i" />
+      </ProfCard>
+    </ProfSection>
 
-  <BSheet v-model="logoutOpen" title="Chiqish">
-    <div class="flex flex-col items-center gap-2 py-3 text-center">
-      <span class="flex size-14 items-center justify-center rounded-full bg-danger-soft text-danger"><AppIcon name="logout" :size="26" /></span>
-      <p class="text-base font-extrabold">Hisobdan chiqasizmi?</p>
-      <p class="text-[13px] font-medium text-muted">Qayta kirish uchun onboarding bosqichidan o'tishingiz kerak bo'ladi.</p>
+    <!-- 1.6 Chiqish -->
+    <button type="button" class="h-[50px] rounded-full bg-[#fdecec] text-[14px] font-extrabold text-[#d93036] transition-transform active:scale-[0.98]" @click="logout">
+      Chiqish
+    </button>
+
+    <!-- Demo: rolni almashtirish (Egasi / Xodim ko'rinishini sinash uchun) -->
+    <div class="flex items-center justify-center gap-2 text-[11.5px] text-muted">
+      <span>Demo: rol</span>
+      <span class="flex rounded-full bg-field p-0.5">
+        <button
+          v-for="r in roles" :key="r.value" type="button"
+          class="h-6 rounded-full px-2.5 text-[11px] font-bold transition-colors"
+          :class="role === r.value ? 'bg-card text-ink shadow-sm' : 'text-muted'"
+          @click="role = r.value"
+        >{{ r.label }}</button>
+      </span>
     </div>
-    <template #footer>
-      <div class="flex gap-2.5">
-        <PillButton variant="field" class="grow basis-0" @click="logoutOpen = false">Bekor qilish</PillButton>
-        <PillButton variant="danger" class="grow basis-0" @click="logout">Chiqish</PillButton>
-      </div>
-    </template>
-  </BSheet>
+
+    <ProfQrSheet v-model="qrOpen" />
+  </ProfPage>
 </template>

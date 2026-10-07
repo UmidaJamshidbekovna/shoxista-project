@@ -30,7 +30,7 @@ Birinchi ochilishda onboarding chiqadi (`localStorage['baraka:onboarded']`). Qay
 | Chat | `/chat`, `/chat/[id]` |
 | Mijozlar va tashkilotlar | `/mijozlar`, `/mijozlar/[id]`, `/tashkilotlar/[id]` |
 | Ta'minotchilar | `/taminotchilar` |
-| Profil | `/profil`, `/profil/{biznes,filiallar,omborlar,xodimlar,ijtimoiy,sozlamalar,dokon,obuna}` |
+| Profil | `/profil`, `/profil/{shaxsiy,biznes,filiallar,filiallar/[id],xodimlar,ijtimoiy,ijtimoiy/[id],sozlamalar?mode=store/app,obuna}` (`omborlar`, `dokon` — redirect) |
 
 ## Tuzilma
 

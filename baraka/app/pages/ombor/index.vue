@@ -5,6 +5,7 @@ import type { StockFilter } from '~/utils/stock'
 definePageMeta({ tab: true })
 
 const store = useStore()
+const { amount } = useMoney()
 const { selection } = useTelegram()
 
 // §III state: sahifadan chiqib qaytganda saqlanadi
@@ -52,7 +53,7 @@ function pickCat(c: string) {
     <header class="flex items-center gap-3">
       <div class="min-w-0 grow">
         <h1 class="truncate text-[25px] leading-tight font-extrabold tracking-[-0.02em] text-ink">Ombor</h1>
-        <p class="mt-[3px] truncate text-[13px] text-muted">{{ counts.all }} ta mahsulot · {{ formatSom(stockValue) }}</p>
+        <p class="mt-[3px] truncate text-[13px] text-muted">{{ counts.all }} ta mahsulot · {{ amount(stockValue) }}</p>
       </div>
       <button
         type="button" aria-label="Mahsulot qo'shish"

@@ -4,6 +4,7 @@ import type { Product } from '~/data/types'
 
 const props = defineProps<{ product: Product }>()
 const store = useStore()
+const { amount } = useMoney()
 
 const tone = computed(() => STOCK_TONE[store.stockState(props.product)])
 const cover = computed(() => productImages(props.product)[0])
@@ -30,7 +31,7 @@ const sub = computed(() => [
       <span class="mt-1 block truncate text-[11.5px] text-muted">{{ sub }}</span>
     </span>
     <span class="shrink-0 pr-1 text-right">
-      <span class="block text-[16px] leading-tight font-extrabold text-ink">{{ formatSom(product.price) }}</span>
+      <span class="block text-[16px] leading-tight font-extrabold text-ink">{{ amount(product.price) }}</span>
       <span class="mt-1 block text-[12.5px] font-bold" :style="{ color: tone.color }">{{ product.stock }} {{ product.unit }}</span>
     </span>
   </NuxtLink>
